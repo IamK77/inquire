@@ -56,3 +56,8 @@ template <typename T>
 std::string underline(const T &msg) {
     return "\033[4m" + to_string(msg) + "\033[0m";
 }
+
+template <typename T>
+std::string gray(const T &msg) {
+    return "\033[90m" + to_string(msg) + "\033[0m";
+}

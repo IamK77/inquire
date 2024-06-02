@@ -13,7 +13,7 @@ extern HANDLE hConsole ;
 
 
 KeyResult key_catch();
-void clean(const std::size_t &size, std::function<void()> func);
-void reflush_input(const std::string &input, bool is_backspace = false);
-void reflush_result(const std::size_t &size_option, std::string &input);
+// void clean(const std::size_t &size, std::function<void()> func);
+// void reflush_input(const std::string &input, bool is_backspace = false);
+// void reflush_result(const std::size_t &size_option, std::string &input);
 

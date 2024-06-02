@@ -27,6 +27,7 @@ int main() {
     std::cout << "Black: " << black(msg) << std::endl;
     std::cout << "Bold: " << bold(msg) << std::endl;
     std::cout << "Underline: " << underline(msg) << std::endl;
+    std::cout << "Gray: " << gray(msg) << std::endl;
 
     std::cout << "🍖" << std::endl;
     std::cout << "中文测试" << std::endl;

@@ -1,1 +1,4 @@
 draft*
+.vscode/
+**.o
+**.exe

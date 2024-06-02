@@ -2,16 +2,17 @@
 
 /* ---------------------------Select-------------------------------*/
 
-Select::Select(std::string prompt_str, std::vector<std::string> options, int MAX_OPTION_LINE) : prompt_str(prompt_str), options(options), option_size(options.size()) {
+Select::Select(std::string prompt_str, std::vector<std::string> options, int MAX_OPTION_LINE) : prompt_str(prompt_str), options(options), option_size(options.size()), preselected(options.size()) {
 
     if (((cursor.now_screen_x_y().second - 1) - cursor.now_cursor_x_y().second) < (options.size() + 1)) {
         for (int i = 0; i < (options.size() + 1); ++i) {
             std::cout << std::endl;
-
         }
+
         std::pair<int, int> xy = cursor.now_cursor_x_y();
         cursor.set_cursor_Pos(xy.first, xy.second - (options.size() + 1));
     }
+
     std::cout << green("? ") << prompt_str << " : ";
 
     ori_cursorPos = cursor.now_cursor_x_y();
@@ -73,15 +74,28 @@ void Select::flush_display(bool is_clear) {
 
         cursor.clsline(ori_cursorPos.second + 1, option_size + 1);
 
+        std::vector<std::string> predisplays;
+
         for (int i = 0; i < options.size(); ++i) {
-        if (options[i].find(input) != std::string::npos) { // 如果菜单项包含用户的输入
+        if (options[i].find(input) != std::string::npos) {
+            predisplays.push_back(options[i]);
+        }
+        }
+
+        preselected = predisplays.size();
+
+        if (selected >= preselected) {
+            selected = 0;
+        }
+
+        for (int i = 0; i < predisplays.size(); ++i) {
             if (i == selected) {
-                std::cout << cyan("> ") << cyan(options[i]) << std::endl; // 高亮显示当前选中的菜单项
+                std::cout << cyan("> ") << cyan(predisplays[i]) << std::endl;
             } else {
-                std::cout << "  " << options[i] << std::endl; // 不高亮显示其他菜单项
+                std::cout << "  " << predisplays[i] << std::endl;
             }
         }
-        }
+
         std::cout << cyan("[↑↓ to move, enter to select, type to filter]");
 
         cursor.set_cursor_Pos(ori_cursorPos.first + cursorPos, ori_cursorPos.second);
@@ -143,3 +157,103 @@ void Select::left() {
         cursor.cursor_move(-1, 0);
     }
 }
+
+
+/* ---------------------------Text-------------------------------*/
+
+Text::Text(std::string prompt_str) : prompt_str(prompt_str) {
+    std::cout << green("? ") << prompt_str << " : ";
+}
+
+std::string Text::prompt() {
+    std::string input;
+    std::pair<int, int> ori_cursorPos = cursor.now_cursor_x_y();
+    std::getline(std::cin, input);
+    cursor.clsback(input.size() + 1, ori_cursorPos.first, ori_cursorPos.second);
+    cursor.set_cursor_Pos(ori_cursorPos.first, ori_cursorPos.second);
+    std::cout << cyan(input) << std::endl;
+    return input;
+}
+
+
+/* ---------------------------Password-------------------------------*/
+
+Password::Password(std::string prompt_str) : prompt_str(prompt_str) {
+    std::cout << green("? ") << prompt_str << " : ";
+}
+
+std::string Password::prompt() {
+    std::string input;
+    std::pair<int, int> ori_cursorPos = cursor.now_cursor_x_y();
+    while (true) {
+        KeyResult key = key_catch();
+        if (key.isKey) {
+            switch (key.key) {
+                case SPECIAL_KEY::ENTER:
+                    cursor.clsback(input.size() + 1, ori_cursorPos.first, ori_cursorPos.second);
+                    cursor.set_cursor_Pos(ori_cursorPos.first, ori_cursorPos.second);
+                    std::cout << cyan("********") << std::endl;
+                    return input;
+                case SPECIAL_KEY::BACKSPACE:
+                    if (input.size() > 0) {
+                        input.pop_back();
+                        cursor.clsback(1, cursor.now_cursor_x_y().first, cursor.now_cursor_x_y().second);
+                    }
+                    break;
+                case SPECIAL_KEY::ESC:
+                    cursor.clsback(input.size() + 1, ori_cursorPos.first, ori_cursorPos.second);
+                    cursor.set_cursor_Pos(ori_cursorPos.first, ori_cursorPos.second);
+                    std::cout << red("<canceled>") << std::endl;
+                    return "";
+                default:
+                    break;
+            }
+        } else {
+            input += key.str;
+            std::cout << "*";
+        }
+    }
+    return input;
+
+}
+
+
+/* ---------------------------Confirm-------------------------------*/
+
+Confirm::Confirm(std::string prompt_str) : prompt_str(prompt_str) {
+    std::cout << green("? ") << prompt_str << " [Enter/ESC] ";
+}
+
+bool Confirm::prompt() {
+    std::pair<int, int> ori_cursorPos = cursor.now_cursor_x_y();
+    std::cout << gray("Enter: Yes, ESC: No");
+    cursor.set_cursor_Pos(ori_cursorPos.first, ori_cursorPos.second);
+    while (true) {
+        KeyResult key = key_catch();
+        if (key.isKey) {
+            switch (key.key) {
+                case SPECIAL_KEY::ENTER:
+                    cursor.clsback(19, ori_cursorPos.first, ori_cursorPos.second);
+                    cursor.set_cursor_Pos(ori_cursorPos.first, ori_cursorPos.second);
+                    cursor.clsback(19, cursor.now_cursor_x_y().first, cursor.now_cursor_x_y().second);
+                    std::cout << cyan("Yes") << std::endl;
+                    return true;
+                case SPECIAL_KEY::ESC:
+                    cursor.clsback(1, ori_cursorPos.first, ori_cursorPos.second);
+                    cursor.set_cursor_Pos(ori_cursorPos.first, ori_cursorPos.second);
+                    std::cout << red("No") << std::endl;
+                    return false;
+                default:
+                    break;
+            }
+        }
+    }
+    return false;
+}
+
+
+/* ---------------------------MultiSelect-------------------------------*/
+
+
+
+
