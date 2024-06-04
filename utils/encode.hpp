@@ -9,3 +9,4 @@ void ToUTF8();
 void ToGBK();
 
 #endif
+

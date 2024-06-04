@@ -11,3 +11,16 @@ void ToGBK() {
 }
 
 #endif
+
+
+#ifdef __linux__
+
+void ToUTF8() {
+    // do nothing
+}
+
+void ToGBK() {
+    // do nothing
+}
+
+#endif

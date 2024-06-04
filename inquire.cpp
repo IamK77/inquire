@@ -1,5 +1,6 @@
 #include "inquire.hpp"
 
+
 /* ---------------------------Select-------------------------------*/
 
 Select::Select(std::string prompt_str, std::vector<std::string> options, int MAX_OPTION_LINE) : prompt_str(prompt_str), options(options), option_size(options.size()), preselected(options.size()) {

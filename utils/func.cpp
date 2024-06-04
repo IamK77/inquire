@@ -1,13 +1,11 @@
 #include "func.h"
 
-#ifdef _WIN32
-#include <conio.h>
 #include <iostream>
 #include <vector>
 #include <string>
-#include <functional>
-#include <variant>
 
+#ifdef _WIN32
+#include <conio.h>
 #include <windows.h>
 
 HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -15,6 +13,28 @@ HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
 void debug(const std::string &msg) {
     std::cout << msg << std::endl;
 }
+
+#endif
+
+#ifdef __linux__
+
+#include <termios.h>
+#include <unistd.h>
+
+int getch() {
+    struct termios oldattr, newattr;
+    int ch;
+    tcgetattr(STDIN_FILENO, &oldattr);
+    newattr = oldattr;
+    newattr.c_lflag &= ~(ICANON | ECHO);
+    tcsetattr(STDIN_FILENO, TCSANOW, &newattr);
+    ch = getchar();
+    tcsetattr(STDIN_FILENO, TCSANOW, &oldattr);
+    return ch;
+}
+
+
+#endif
 
 KeyResult key_catch() {
     while (true) {
@@ -53,6 +73,3 @@ KeyResult key_catch() {
         }
     }
 }
-
-#endif
-
