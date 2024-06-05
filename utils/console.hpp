@@ -7,6 +7,10 @@
 #include <string>   
 
 // HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+#ifdef _WIN32
+    HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+    CONSOLE_SCREEN_BUFFER_INFO csbi;
+#endif
 
 class Cursor {
     public:
@@ -19,10 +23,7 @@ class Cursor {
         int cursor_x;
         int cursor_y;
 
-        #ifdef _WIN32
-        HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
-        CONSOLE_SCREEN_BUFFER_INFO csbi;
-        #endif
+
 
     public:
         void get_screen_x_y();

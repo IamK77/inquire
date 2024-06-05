@@ -253,26 +253,26 @@ void Cursor::debug_in_last_line(std::string msg) {
 #endif
 
 
-// #ifdef TEST
+#ifdef TEST
 
-// int main() {
-//     // printscreensize();
-//     // printcursorPos();
-//     Cursor cursor;
-//     CONSOLE_SCREEN_BUFFER_INFO csbi;
-//     GetConsoleScreenBufferInfo(hConsole, &csbi);
-//     int width = csbi.dwSize.X;
-//     int height = csbi.dwSize.Y;
-//     cursor.fill(0, 0, width, height, '*');
+int main() {
+    // printscreensize();
+    // printcursorPos();
+    Cursor cursor;
+    CONSOLE_SCREEN_BUFFER_INFO csbi;
+    GetConsoleScreenBufferInfo(hConsole, &csbi);
+    int width = csbi.dwSize.X;
+    int height = csbi.dwSize.Y;
+    cursor.fill(0, 0, width, height, '*');
 
-//     cursor.set_cursor_Pos(10, 15);
+    cursor.set_cursor_Pos(10, 15);
 
-//     // cursor.clsline(5);
-//     cursor.clsfront(5, 4, 15);
-//     cursor.clsback(5, 4, 15);
-//     cursor.set_cursor_Pos(10, 15);
-//     while (true) {}
-//     return 0;
-// }
+    cursor.clsline(5);
+    // cursor.clsfront(5, 4, 15);
+    // cursor.clsback(5, 4, 15);
+    cursor.set_cursor_Pos(10, 15);
+    while (true) {}
+    return 0;
+}
 
-// #endif
+#endif
