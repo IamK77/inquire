@@ -10,3 +10,10 @@ void ToGBK();
 
 #endif
 
+#ifdef __linux__
+
+void ToUTF8();
+
+void ToGBK();
+
+#endif
