@@ -1,20 +1,57 @@
 #include "inquire.hpp"
 
 
+#ifdef __linux__
+
+#include <time.h>
+
+struct timespec ts;
+
+void sleep(int ms) {
+    ts.tv_sec = 0;
+    ts.tv_nsec = ms * 1000000; // Convert milliseconds to nanoseconds
+    nanosleep(&ts, NULL);
+}
+
+#endif
+
+
+
 /* ---------------------------Select-------------------------------*/
 
 Select::Select(std::string prompt_str, std::vector<std::string> options, int MAX_OPTION_LINE) : prompt_str(prompt_str), options(options), option_size(options.size()), preselected(options.size()) {
 
-    if (((cursor.now_screen_x_y().second - 1) - cursor.now_cursor_x_y().second) < (options.size() + 1)) {
-        for (int i = 0; i < (options.size() + 1); ++i) {
-            std::cout << std::endl;
+    #ifdef _WIN32
+        if (((cursor.now_screen_x_y().second - 1) - cursor.now_cursor_x_y().second) < (options.size() + 1)) {
+            for (int i = 0; i < (options.size() + 1); ++i) {
+                std::cout << std::endl;
+            }
+
+            std::pair<int, int> xy = cursor.now_cursor_x_y();
+            cursor.set_cursor_Pos(xy.first, xy.second - (options.size() + 1));
         }
+    #endif
 
-        std::pair<int, int> xy = cursor.now_cursor_x_y();
-        cursor.set_cursor_Pos(xy.first, xy.second - (options.size() + 1));
-    }
+    #ifdef __linux__
+        if (((cursor.now_screen_x_y().second - 1) - cursor.now_cursor_x_y().second) < (options.size() + 1)) {
+            std::cout << "\033[s";
+            for (int i = 0; i < (options.size() + 1); ++i) {
+                std::cout << std::endl;
+            }
+            std::cout << "\033[u";
 
-    std::cout << green("? ") << prompt_str << " : ";
+            std::pair<int, int> xy = cursor.now_cursor_x_y();
+            cursor.set_cursor_Pos(xy.first, xy.second - (options.size() + 2));
+        }
+    #endif
+
+    std::cout << green("? ") << prompt_str << " : " << std::flush;
+
+    // #ifdef __linux__
+    //     std::pair<int, int> xy = cursor.now_cursor_x_y();
+    //     cursor.coutxy(xy.first, xy.second + 10, "X: " + std::to_string(xy.first) + "Y: " + std::to_string(xy.second));
+    //     cursor.set_cursor_Pos(xy.first, xy.second);
+    // #endif
 
     ori_cursorPos = cursor.now_cursor_x_y();
 
@@ -73,14 +110,18 @@ void Select::flush_display(bool is_clear) {
         cursor.clsline(ori_cursorPos.second + 1, option_size + 1);
     } else {
 
+        #ifdef __linux
+            std::cout << std::endl;
+        #endif
+
         cursor.clsline(ori_cursorPos.second + 1, option_size + 1);
 
         std::vector<std::string> predisplays;
 
         for (int i = 0; i < options.size(); ++i) {
-        if (options[i].find(input) != std::string::npos) {
-            predisplays.push_back(options[i]);
-        }
+            if (options[i].find(input) != std::string::npos) {
+                predisplays.push_back(options[i]);
+            }
         }
 
         preselected = predisplays.size();
@@ -116,14 +157,33 @@ void Select::flush_result(std::string result) {
         input.pop_back();
         flush_input();
         if (input.size() > 0 && input.size() < 10) {
-        Sleep(100 / input.size());
+
+        #ifdef _WIN32
+            Sleep(100 / input.size());
+        #endif
+
+        #ifdef __linux__
+            ts.tv_sec = 0;
+            ts.tv_nsec = (100 / (input.size())) * 1000000; // Convert milliseconds to nanoseconds
+            nanosleep(&ts, NULL);
+        #endif
+
         }
     }
     cursor.set_cursor_Pos(ori_cursorPos.first, ori_cursorPos.second);
     for (int i = 0; i < result.size(); ++i) {
         std::cout << result[i];
         if (result.size() < 20 && (result.size() - i) > 0) {
-            Sleep(100 / (result.size() - i));
+            #ifdef _WIN32
+                Sleep(100 / (result.size() - i));
+            #endif
+
+            #ifdef __linux__
+                ts.tv_sec = 0;
+                ts.tv_nsec = (100 / (result.size() - i)) * 1000000; // Convert milliseconds to nanoseconds
+                nanosleep(&ts, NULL);
+            #endif
+
         }
     }
     std::cout << std::endl;
@@ -149,7 +209,6 @@ void Select::right() {
         cursorPos++;
         cursor.cursor_move(1, 0);
     }
-
 }
 
 void Select::left() {

@@ -3,6 +3,7 @@
 #ifdef _WIN32
 
 #include <windows.h>
+#endif
 #include <utility>
 #include <string>   
 
@@ -54,4 +55,3 @@ class Cursor {
 
 };
 
-#endif

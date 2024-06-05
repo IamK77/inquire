@@ -140,9 +140,10 @@ void Cursor::debug_in_last_line(std::string msg) {
 #include <utility>
 #include <unistd.h>
 #include <termios.h>
+#include <sys/ioctl.h>
 
 Cursor::Cursor() {
-    // get_screen_x_y();
+    get_screen_x_y();
 }
 
 void Cursor::get_screen_x_y() {
@@ -150,7 +151,6 @@ void Cursor::get_screen_x_y() {
     ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
     screen_x = w.ws_col;
     screen_y = w.ws_row;
-    
 }
 
 void Cursor::get_cursor_x_y() {
@@ -175,8 +175,8 @@ void Cursor::get_cursor_x_y() {
     // Restore the termios settings
     tcsetattr(STDIN_FILENO, TCSANOW, &saved_settings);
 
-    cursor_x = x;
-    cursor_y = y;
+    cursor_x = x - 1;
+    cursor_y = y - 1;
 }
 
 std::pair<int, int> Cursor::now_screen_x_y() {
@@ -190,32 +190,40 @@ std::pair<int, int> Cursor::now_cursor_x_y() {
 }
 
 void Cursor::set_cursor_Pos(int x, int y) {
-    std::cout << "\033[" << y << ";" << x << "H";
+    std::cout << "\033[" << y + 1 << ";" << x + 1 << "H" << std::flush;
 }
 
 void Cursor::clsline(int line, int count) {
-    std::cout << "\033[" << line << ";0H";
+    std::cout << "\033[s";
+    std::cout << "\033[" << line + 1 << ";0H";
     for (int i = 0; i < count; ++i) {
-        std::cout << "\033[K";
+        std::cout << "\033[K" << std::endl;
     }
+    std::cout << "\033[u" << std::flush;
 }
 
 void Cursor::clsfront(int front, int PosX, int PosY) {
-    std::cout << "\033[" << PosY << ";" << PosX - front << "H";
+    std::pair<int, int> xy = now_cursor_x_y();
+    std::cout << "\033[" << PosY + 1 << ";" << PosX - front + 1 << "H";
     for (int i = 0; i < front; ++i) {
         std::cout << " ";
     }
+    std::cout << std::flush;
+    set_cursor_Pos(xy.first, xy.second);
 }
 
 void Cursor::clsback(int back, int PosX, int PosY) {
-    std::cout << "\033[" << PosY << ";" << PosX << "H";
+    std::pair<int, int> xy = now_cursor_x_y();
+    std::cout << "\033[" << PosY + 1 << ";" << PosX + 1 << "H";
     for (int i = 0; i < back; ++i) {
         std::cout << " ";
     }
+    std::cout << std::flush;
+    set_cursor_Pos(xy.first, xy.second);
 }
 
 void Cursor::fill(int x, int y, int width, int height, char ch) {
-    std::cout << "\033[" << y << ";" << x << "H";
+    std::cout << "\033[" << y << ";" << x << "H" << std::flush;
     for (int i = 0; i < height; ++i) {
         for (int j = 0; j < width; ++j) {
             std::cout << ch;
@@ -224,11 +232,21 @@ void Cursor::fill(int x, int y, int width, int height, char ch) {
 }
 
 void Cursor::cursor_move(const int &x, const int &y) {
-    std::cout << "\033[" << y << ";" << x << "H";
+    if (x > 0) {
+        std::cout << "\033[" << x << "C" << std::flush;  // 向右移动
+    } else if (x < 0) {
+        std::cout << "\033[" << -x << "D" << std::flush;  // 向左移动
+    }
+
+    if (y > 0) {
+        std::cout << "\033[" << y << "B" << std::flush;  // 向下移动
+    } else if (y < 0) {
+        std::cout << "\033[" << -y << "A" << std::flush;  // 向上移动
+    }
 }
 
 void Cursor::printcursorPos() {
-    std::cout << "\033[6n";
+    std::cout << "\033[6n" << std::flush;
 }
 
 void Cursor::printscreensize() {
@@ -238,7 +256,7 @@ void Cursor::printscreensize() {
 }
 
 void Cursor::coutxy(int x, int y, std::string msg) {
-    std::cout << "\033[" << y << ";" << x << "H";
+    std::cout << "\033[" << y + 1 << ";" << x + 1 << "H" << std::flush;
     std::cout << msg;
 }
 
@@ -259,18 +277,32 @@ int main() {
     // printscreensize();
     // printcursorPos();
     Cursor cursor;
-    CONSOLE_SCREEN_BUFFER_INFO csbi;
-    GetConsoleScreenBufferInfo(hConsole, &csbi);
-    int width = csbi.dwSize.X;
-    int height = csbi.dwSize.Y;
-    cursor.fill(0, 0, width, height, '*');
+    // CONSOLE_SCREEN_BUFFER_INFO csbi;
+    // GetConsoleScreenBufferInfo(hConsole, &csbi);
+    // int width = csbi.dwSize.X;
+    // int height = csbi.dwSize.Y;
 
-    cursor.set_cursor_Pos(10, 15);
+    std::pair<int, int> xy = cursor.now_screen_x_y();
+    std::pair<int, int> xy_ = cursor.now_cursor_x_y();
+    std::cout << "X: " << xy.first << " Y: " << xy.second << std::endl;
+    std::cout << "X: " << xy_.first << " Y: " << xy_.second << std::endl;
+    // cursor.cursor_move(5, 0);
+    // xy_ = cursor.now_cursor_x_y();
+    // std::cout << "*****************" << std::endl << "*****************" << std::endl;
+    // cursor.cursor_move(-10, 0);
+    // cursor.clsback(10, xy_.first, xy_.second);
+    // cursor.clsline(xy_.second, 2);
+    // cursor.set_cursor_Pos(20, xy_.second);
 
-    cursor.clsline(5);
+    // cursor.fill(0, 0, width, height, '*');
+    // cursor.fill(0, 0, xy.first, xy.second, '*');
+
+    // cursor.set_cursor_Pos(10, 15);
+
+    // // cursor.clsline(5);
     // cursor.clsfront(5, 4, 15);
     // cursor.clsback(5, 4, 15);
-    cursor.set_cursor_Pos(10, 15);
+    // cursor.set_cursor_Pos(10, 15);
     while (true) {}
     return 0;
 }
