@@ -7,7 +7,11 @@
 
 #include <windows.h>
 
-extern HANDLE hConsole ;
+// extern HANDLE hConsole;
+extern HANDLE hStdin;
+extern INPUT_RECORD irInputRecord;
+extern DWORD dwEventsRead;
+extern KEY_EVENT_RECORD key;
 
 #endif
 

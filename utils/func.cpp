@@ -8,45 +8,42 @@
 #include <conio.h>
 #include <windows.h>
 
-// HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+
+HANDLE hStdin = GetStdHandle(STD_INPUT_HANDLE); 
+INPUT_RECORD irInputRecord;
+DWORD dwEventsRead;
+KEY_EVENT_RECORD key;
 
 KeyResult key_catch() {
     while (true) {
-        // int ch = _getch();
-        // if (ch >= 32 && ch <= 126) { // 如果 ch 是一个可打印字符的 ASCII 值
-        //     return KeyResult(std::string(1, static_cast<char>(ch)));
-        // } else {
-        //     if (ch == 0xE0) {
-        //         int ch2 = _getch();
-        //         switch (ch2) {
-        //             case 72:
-        //                 return KeyResult(SPECIAL_KEY::UP);
-        //             case 80:
-        //                 return KeyResult(SPECIAL_KEY::DOWN);
-        //             case 77:
-        //                 return KeyResult(SPECIAL_KEY::RIGHT);
-        //             case 75:
-        //                 return KeyResult(SPECIAL_KEY::LEFT);
-        //             default:
-        //                 return KeyResult(SPECIAL_KEY::UNKNOWN);
-        //         }
-        //     } else {
-        //         switch (ch) {
-        //             case 13:
-        //                 return KeyResult(SPECIAL_KEY::ENTER);
-        //             case 27:
-        //                 return KeyResult(SPECIAL_KEY::ESC);
-        //             case 32:
-        //                 return KeyResult(SPECIAL_KEY::SPACE);
-        //             case 8:
-        //                 return KeyResult(SPECIAL_KEY::BACKSPACE);
-        //             default:
-        //                 return KeyResult(SPECIAL_KEY::UNKNOWN);
-        //         }
-        //     }
-        // }
+        ReadConsoleInput(hStdin, &irInputRecord, 1, &dwEventsRead);
+        if (irInputRecord.EventType == KEY_EVENT && irInputRecord.Event.KeyEvent.bKeyDown) {
+            key = irInputRecord.Event.KeyEvent;
+            if (key.uChar.AsciiChar != '\0') {  // Check if there is an ASCII character
+                if (key.wVirtualKeyCode == VK_BACK) {
+                    return KeyResult(SPECIAL_KEY::BACKSPACE);
+                } else if (key.wVirtualKeyCode == VK_RETURN) {
+                    return KeyResult(SPECIAL_KEY::ENTER);
+                } else if (key.wVirtualKeyCode == VK_ESCAPE) {
+                    return KeyResult(SPECIAL_KEY::ESC);
+                } else if (key.wVirtualKeyCode == VK_SPACE) {
+                    return KeyResult(SPECIAL_KEY::SPACE);
+                } else {
+                    return KeyResult(std::string(1, static_cast<char>(key.uChar.AsciiChar)));
+                }
+            } else {
+                switch (key.wVirtualKeyCode) {
+                    case VK_UP: return KeyResult(SPECIAL_KEY::UP);
+                    case VK_DOWN: return KeyResult(SPECIAL_KEY::DOWN);
+                    case VK_LEFT: return KeyResult(SPECIAL_KEY::LEFT);
+                    case VK_RIGHT: return KeyResult(SPECIAL_KEY::RIGHT);
+                    default: return KeyResult(SPECIAL_KEY::UNKNOWN);
+                }
+            }
+        }
     }
 }
+
 
 #endif
 

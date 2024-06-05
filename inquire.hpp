@@ -1,3 +1,5 @@
+#pragma once
+
 #include "utils/func.h"
 #include "utils/console.hpp"
 #include "utils/colorful.hpp"

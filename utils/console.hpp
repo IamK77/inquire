@@ -7,10 +7,10 @@
 #include <utility>
 #include <string>   
 
-// HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+
 #ifdef _WIN32
-    HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
-    CONSOLE_SCREEN_BUFFER_INFO csbi;
+    extern HANDLE hConsole;
+    extern CONSOLE_SCREEN_BUFFER_INFO csbi;
 #endif
 
 class Cursor {
