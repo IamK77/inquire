@@ -21,6 +21,11 @@ class Select {
         int selected = 0;
         int cursorPos = 0;
         int preselected = 0;
+        
+        #ifdef __linux__
+            int temp = 0;
+        #endif
+        
     public:
         Select(std::string prompt_str, std::vector<std::string> options, int MAX_OPTION_LINE = 7);
         std::string prompt();
@@ -40,6 +45,7 @@ class Text {
     private:
         std::string prompt_str;
         Cursor cursor;
+        std::string input;
     public:
         Text(std::string prompt_str);
         std::string prompt();

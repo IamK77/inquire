@@ -19,7 +19,7 @@ KeyResult key_catch() {
         ReadConsoleInput(hStdin, &irInputRecord, 1, &dwEventsRead);
         if (irInputRecord.EventType == KEY_EVENT && irInputRecord.Event.KeyEvent.bKeyDown) {
             key = irInputRecord.Event.KeyEvent;
-            if (key.uChar.AsciiChar != '\0') {  // Check if there is an ASCII character
+            if (key.uChar.AsciiChar != '\0') {
                 if (key.wVirtualKeyCode == VK_BACK) {
                     return KeyResult(SPECIAL_KEY::BACKSPACE);
                 } else if (key.wVirtualKeyCode == VK_RETURN) {
@@ -65,6 +65,9 @@ int _getch() {
     char c[3];
     int nread = read(STDIN_FILENO, c, sizeof(c));
 
+    tcsetattr(STDIN_FILENO, TCSANOW, &oldattr);
+    fcntl(STDIN_FILENO, F_SETFL, 0);  // 恢复为阻塞模式
+
     if (nread == 1 && c[0] == 27) {
         return 27; // ESC 键
     } else if (nread > 1 && c[0] == 27 && c[1] == '[') {
@@ -75,11 +78,10 @@ int _getch() {
             case 'D': return 1003; // 左箭头
         }
     } else if (nread == 1) {
-        return c[0]; // 返回读取到的普通字符
+        return c[0]; 
     }
 
-    tcsetattr(STDIN_FILENO, TCSANOW, &oldattr);
-    fcntl(STDIN_FILENO, F_SETFL, 0);  // 恢复为阻塞模式
+
     return -1;
 }
 
@@ -123,7 +125,7 @@ void debug(const std::string &msg) {
 
 
 
-#ifdef TEST
+#ifdef TESTFUNC
 
 int main() {
     while (true) {

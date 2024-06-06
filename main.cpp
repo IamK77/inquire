@@ -12,14 +12,14 @@ int main() {
     std::string result = Select("Select an option", options).prompt();
     std::cout << "You selected: " << result << std::endl;
 
-    // std::string text = Text("Enter some text").prompt();
-    // std::cout << "You entered: " << text << std::endl;
+    std::string text = Text("Enter some text").prompt();
+    std::cout << "You entered: " << text << std::endl;
 
-    // std::string password = Password("Enter a password").prompt();
-    // std::cout << "You entered: " << password << std::endl;
+    std::string password = Password("Enter a password").prompt();
+    std::cout << "You entered: " << password << std::endl;
 
-    // bool confirm = Confirm("Are you suuuuuuuuuuuuuuuuuuuure?").prompt();
-    // std::cout << "You confirmed: " << confirm << std::endl;
+    bool confirm = Confirm("Are you suuuuuure?").prompt();
+    std::cout << "You confirmed: " << confirm << std::endl;
 
     return 0;
 }

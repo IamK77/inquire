@@ -1,22 +1,6 @@
 #include "inquire.hpp"
 
 
-#ifdef __linux__
-
-#include <time.h>
-
-struct timespec ts;
-
-void sleep(int ms) {
-    ts.tv_sec = 0;
-    ts.tv_nsec = ms * 1000000; // Convert milliseconds to nanoseconds
-    nanosleep(&ts, NULL);
-}
-
-#endif
-
-
-
 /* ---------------------------Select-------------------------------*/
 
 Select::Select(std::string prompt_str, std::vector<std::string> options, int MAX_OPTION_LINE) : prompt_str(prompt_str), options(options), option_size(options.size()), preselected(options.size()) {
@@ -32,26 +16,7 @@ Select::Select(std::string prompt_str, std::vector<std::string> options, int MAX
         }
     #endif
 
-    #ifdef __linux__
-        if (((cursor.now_screen_x_y().second - 1) - cursor.now_cursor_x_y().second) < (options.size() + 1)) {
-            std::cout << "\033[s";
-            for (int i = 0; i < (options.size() + 1); ++i) {
-                std::cout << std::endl;
-            }
-            std::cout << "\033[u";
-
-            std::pair<int, int> xy = cursor.now_cursor_x_y();
-            cursor.set_cursor_Pos(xy.first, xy.second - (options.size() + 2));
-        }
-    #endif
-
     std::cout << green("? ") << prompt_str << " : " << std::flush;
-
-    // #ifdef __linux__
-    //     std::pair<int, int> xy = cursor.now_cursor_x_y();
-    //     cursor.coutxy(xy.first, xy.second + 10, "X: " + std::to_string(xy.first) + "Y: " + std::to_string(xy.second));
-    //     cursor.set_cursor_Pos(xy.first, xy.second);
-    // #endif
 
     ori_cursorPos = cursor.now_cursor_x_y();
 
@@ -85,6 +50,10 @@ std::string Select::prompt() {
                     return options[selected];
                 case SPECIAL_KEY::BACKSPACE:
                     if (cursorPos > 0) {
+                        #ifdef __linux__
+                            temp = cursorPos;
+                        #endif
+
                         cursorPos--;
                         input.erase(cursorPos, 1);
                         flush_input();
@@ -107,14 +76,27 @@ std::string Select::prompt() {
 
 void Select::flush_display(bool is_clear) {
     if (is_clear) {
-        cursor.clsline(ori_cursorPos.second + 1, option_size + 1);
+        #ifdef _WIN32
+            cursor.clsline(ori_cursorPos.second + 1, option_size + 1);
+        #endif
+        #ifdef __linux__
+            std::cout << std::endl;
+            for(int i = 0; i < option_size; ++i) {
+                std::cout << "\033[K" << std::endl;
+            }
+            std::cout << "\033[K" << std::flush;
+            cursor.cursor_move(prompt_str.size() + 5, - option_size - 1);
+        #endif
+
     } else {
 
         #ifdef __linux
             std::cout << std::endl;
         #endif
 
-        cursor.clsline(ori_cursorPos.second + 1, option_size + 1);
+        #ifdef _WIN32
+            cursor.clsline(ori_cursorPos.second + 1, option_size + 1);
+        #endif
 
         std::vector<std::string> predisplays;
 
@@ -130,6 +112,14 @@ void Select::flush_display(bool is_clear) {
             selected = 0;
         }
 
+        #ifdef __linux__
+            for(int i = 0; i < option_size; ++i) {
+                std::cout << "\033[K" << std::endl;
+            }
+            std::cout << "\033[K" << std::flush;
+            cursor.cursor_move(0, - option_size);
+        #endif
+
         for (int i = 0; i < predisplays.size(); ++i) {
             if (i == selected) {
                 std::cout << cyan("> ") << cyan(predisplays[i]) << std::endl;
@@ -140,50 +130,64 @@ void Select::flush_display(bool is_clear) {
 
         std::cout << cyan("[↑↓ to move, enter to select, type to filter]");
 
-        cursor.set_cursor_Pos(ori_cursorPos.first + cursorPos, ori_cursorPos.second);
+        #ifdef _WIN32
+            cursor.set_cursor_Pos(ori_cursorPos.first + cursorPos, ori_cursorPos.second);
+        #endif
+
+        #ifdef __linux__
+            std::cout << "\r" << std::flush;
+            cursor.cursor_move(ori_cursorPos.first + cursorPos, -preselected - 1);
+        #endif
     }
 
 }
 
 void Select::flush_input() {
-    cursor.clsback(input.size() + 1, ori_cursorPos.first, ori_cursorPos.second);
-    cursor.set_cursor_Pos(ori_cursorPos.first, ori_cursorPos.second);
-    std::cout << input;
-    cursor.cursor_move(cursorPos - input.size(), 0);
+    #ifdef _WIN32
+        cursor.clsback(input.size() + 1, ori_cursorPos.first, ori_cursorPos.second);
+        cursor.set_cursor_Pos(ori_cursorPos.first, ori_cursorPos.second);
+        std::cout << input;
+        cursor.cursor_move(cursorPos - input.size(), 0);
+    #endif
+
+    #ifdef __linux__
+        cursor.cursor_move(-(temp), 0);
+        for(int i = 0; i <= input.size(); ++i) {
+            std::cout << " ";
+        }
+        cursor.cursor_move(-input.size() - 1, 0);
+        std::cout << input << std::flush;
+        cursor.cursor_move(cursorPos - input.size(), 0);
+    #endif
 }
 
 void Select::flush_result(std::string result) {
-    while (input.size() > 0) {
-        input.pop_back();
-        flush_input();
-        if (input.size() > 0 && input.size() < 10) {
 
-        #ifdef _WIN32
-            Sleep(100 / input.size());
-        #endif
-
-        #ifdef __linux__
-            ts.tv_sec = 0;
-            ts.tv_nsec = (100 / (input.size())) * 1000000; // Convert milliseconds to nanoseconds
-            nanosleep(&ts, NULL);
-        #endif
-
+    #ifdef _WIN32
+        while (input.size() > 0) {
+            input.pop_back();
+            flush_input();
+            if (input.size() > 0 && input.size() < 10) {
+                Sleep(100 / input.size());
+            }
         }
-    }
-    cursor.set_cursor_Pos(ori_cursorPos.first, ori_cursorPos.second);
+        cursor.set_cursor_Pos(ori_cursorPos.first, ori_cursorPos.second);
+        
+    #endif
+
+    #ifdef __linux__
+        for(int i = 0; i <= input.size(); ++i) {
+            std::cout << " ";
+        }
+        cursor.cursor_move(- input.size() - 1, 0);
+    #endif
+
     for (int i = 0; i < result.size(); ++i) {
         std::cout << result[i];
         if (result.size() < 20 && (result.size() - i) > 0) {
             #ifdef _WIN32
                 Sleep(100 / (result.size() - i));
             #endif
-
-            #ifdef __linux__
-                ts.tv_sec = 0;
-                ts.tv_nsec = (100 / (result.size() - i)) * 1000000; // Convert milliseconds to nanoseconds
-                nanosleep(&ts, NULL);
-            #endif
-
         }
     }
     std::cout << std::endl;
@@ -191,6 +195,10 @@ void Select::flush_result(std::string result) {
 
 void Select::input_insert(std::string ch) {
     input.insert(cursorPos, ch);
+    #ifdef __linux__
+        temp = cursorPos;
+    #endif
+
     cursorPos++;
 }
 
@@ -226,11 +234,24 @@ Text::Text(std::string prompt_str) : prompt_str(prompt_str) {
 }
 
 std::string Text::prompt() {
-    std::string input;
-    std::pair<int, int> ori_cursorPos = cursor.now_cursor_x_y();
-    std::getline(std::cin, input);
-    cursor.clsback(input.size() + 1, ori_cursorPos.first, ori_cursorPos.second);
-    cursor.set_cursor_Pos(ori_cursorPos.first, ori_cursorPos.second);
+
+    #ifdef _WIN32
+        std::pair<int, int> ori_cursorPos = cursor.now_cursor_x_y();
+        std::getline(std::cin, input);
+        cursor.clsback(input.size() + 1, ori_cursorPos.first, ori_cursorPos.second);
+        cursor.set_cursor_Pos(ori_cursorPos.first, ori_cursorPos.second);
+    #endif
+
+    #ifdef __linux__
+        if (std::cin.peek() == '\n') { 
+            std::cin.ignore();
+        }
+        std::getline(std::cin, input);
+        cursor.cursor_move((prompt_str.size() + 5), -1);
+        for(int i = 0; i <= input.size(); ++i) { std::cout << " "; }
+        cursor.cursor_move(-input.size() - 1, 0);
+    #endif
+
     std::cout << cyan(input) << std::endl;
     return input;
 }
@@ -244,6 +265,9 @@ Password::Password(std::string prompt_str) : prompt_str(prompt_str) {
 
 std::string Password::prompt() {
     std::string input;
+
+    #ifdef _WIN32
+
     std::pair<int, int> ori_cursorPos = cursor.now_cursor_x_y();
     while (true) {
         KeyResult key = key_catch();
@@ -273,9 +297,52 @@ std::string Password::prompt() {
             std::cout << "*";
         }
     }
+
+    #endif
+
+
+    #ifdef __linux__
+
+    while (true) {
+        std::cout << std::flush;
+        KeyResult key = key_catch();
+        if (key.isKey) {
+            switch (key.key) {
+                case SPECIAL_KEY::ENTER:
+                    cursor.cursor_move(-input.size(), 0);
+                    for(int i = 0; i <= input.size(); ++i) { std::cout << " "; }
+                    cursor.cursor_move(-input.size() - 1, 0);
+                    std::cout << cyan("********") << std::endl;
+                    return input;
+                case SPECIAL_KEY::BACKSPACE:
+                    if (input.size() > 0) {
+                        input.pop_back();
+                        cursor.cursor_move(-1, 0);
+                        std::cout << " ";
+                        cursor.cursor_move(-1, 0);
+                    }
+                    break;
+                case SPECIAL_KEY::ESC:
+                    cursor.cursor_move(-input.size(), 0);
+                    for(int i = 0; i <= input.size(); ++i) { std::cout << " "; }
+                    cursor.cursor_move(-input.size() - 1, 0);
+                    std::cout << red("<canceled>") << std::endl;
+                    return "";
+                default:
+                    break;
+            }
+        } else {
+            input += key.str;
+            std::cout << "*" << std::flush;
+        }
+    }
+
+    #endif
+
     return input;
 
 }
+
 
 
 /* ---------------------------Confirm-------------------------------*/
@@ -285,6 +352,8 @@ Confirm::Confirm(std::string prompt_str) : prompt_str(prompt_str) {
 }
 
 bool Confirm::prompt() {
+
+    #ifdef _WIN32
     std::pair<int, int> ori_cursorPos = cursor.now_cursor_x_y();
     std::cout << gray("Enter: Yes, ESC: No");
     cursor.set_cursor_Pos(ori_cursorPos.first, ori_cursorPos.second);
@@ -308,6 +377,41 @@ bool Confirm::prompt() {
             }
         }
     }
+    #endif
+
+
+    #ifdef __linux__
+
+    std::string help = "Enter: Yes, ESC: No";
+    std::cout << gray(help);
+    cursor.cursor_move(-help.size(), 0);
+
+    while (true) {
+        KeyResult key = key_catch();
+        if (key.isKey) {
+            switch (key.key) {
+                case SPECIAL_KEY::ENTER:
+                    for (int i = 0; i < help.size(); ++i) {
+                        std::cout << " ";
+                    }
+                    cursor.cursor_move(-help.size(), 0);
+                    std::cout << cyan("Yes") << std::endl;
+                    return true;
+                case SPECIAL_KEY::ESC:
+                    for (int i = 0; i < help.size(); ++i) {
+                        std::cout << " ";
+                    }
+                    cursor.cursor_move(-help.size(), 0);
+                    std::cout << red("No") << std::endl;
+                    return false;
+                default:
+                    break;
+            }
+        }
+    }
+
+    #endif
+
     return false;
 }
 

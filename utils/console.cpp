@@ -200,12 +200,15 @@ void Cursor::set_cursor_Pos(int x, int y) {
 }
 
 void Cursor::clsline(int line, int count) {
-    std::cout << "\033[s";
-    std::cout << "\033[" << line + 1 << ";0H";
+    // std::cout << "\033[s";
+    // std::pair<int, int> xy = now_cursor_x_y();
+    set_cursor_Pos(0, line);
     for (int i = 0; i < count; ++i) {
         std::cout << "\033[K" << std::endl;
     }
-    std::cout << "\033[u" << std::flush;
+    cursor_move(0, -count);
+    // std::cout << "\033[u" << std::flush;
+    // set_cursor_Pos(xy.first, xy.second);
 }
 
 void Cursor::clsfront(int front, int PosX, int PosY) {
@@ -277,7 +280,7 @@ void Cursor::debug_in_last_line(std::string msg) {
 #endif
 
 
-#ifdef TEST
+#ifdef TESTCONSOLE
 
 int main() {
     // printscreensize();
@@ -292,12 +295,13 @@ int main() {
     std::pair<int, int> xy_ = cursor.now_cursor_x_y();
     std::cout << "X: " << xy.first << " Y: " << xy.second << std::endl;
     std::cout << "X: " << xy_.first << " Y: " << xy_.second << std::endl;
-    // cursor.cursor_move(5, 0);
-    // xy_ = cursor.now_cursor_x_y();
+
+    cursor.cursor_move(5, 0);
+    xy_ = cursor.now_cursor_x_y();
     // std::cout << "*****************" << std::endl << "*****************" << std::endl;
     // cursor.cursor_move(-10, 0);
     // cursor.clsback(10, xy_.first, xy_.second);
-    // cursor.clsline(xy_.second, 2);
+    // cursor.clsline(xy_.second, 1);
     // cursor.set_cursor_Pos(20, xy_.second);
 
     // cursor.fill(0, 0, width, height, '*');
