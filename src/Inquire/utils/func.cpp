@@ -8,6 +8,7 @@
 #include <conio.h>
 #include <windows.h>
 
+namespace Inquire {
 
 HANDLE hStdin = GetStdHandle(STD_INPUT_HANDLE); 
 INPUT_RECORD irInputRecord;
@@ -122,7 +123,7 @@ void debug(const std::string &msg) {
     std::cout << msg << std::endl;
 }
 
-
+}
 
 
 #ifdef TESTFUNC

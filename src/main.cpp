@@ -1,24 +1,25 @@
-#include "inquire.hpp"
+// #include "inquire.hpp"
+#include "Inquire/inquire.hpp"
 #include <iostream>
 #include <vector>
 #include <string>
-#include "encode.hpp"
+
 
 int main() {
-    ToUTF8();
+    
 
     std::vector<std::string> options = {"Option 111", "Option 112", "Option 223", "Option 224"};
 
-    std::string result = Select("Select an option", options).prompt();
+    std::string result = Inquire::Select("Select an option", options).prompt();
     std::cout << "You selected: " << result << std::endl;
 
-    std::string text = Text("Enter some text").prompt();
+    std::string text = Inquire::Text("Enter some text").prompt();
     std::cout << "You entered: " << text << std::endl;
 
-    std::string password = Password("Enter a password").prompt();
+    std::string password = Inquire::Password("Enter a password").prompt();
     std::cout << "You entered: " << password << std::endl;
 
-    bool confirm = Confirm("Are you suuuuuure?").prompt();
+    bool confirm = Inquire::Confirm("Are you suuuuuure?").prompt();
     std::cout << "You confirmed: " << confirm << std::endl;
 
     return 0;

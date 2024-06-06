@@ -1,14 +1,18 @@
 # 编译器和标志
 CXX = g++
-CXXFLAGS = -std=c++11 -I./utils  # -Wall -Wextra 
+CXXFLAGS = -std=c++11 -I./Inquire/utils  # -Wall -Wextra 
 
 # 目录
-SRC_DIR = .
-UTILS_DIR = ./utils
+SRC_DIR = ./src
+UTILS_DIR = ./src/Inquire/utils
+INCLUDE_DIR = ./src/Inquire
 BUILD_DIR = ./build
 
+TEST_DIR = ./tests
+SINGLE_INCLUDE_DIR = ./include
+
 # 源文件
-SRCS = $(SRC_DIR)/main.cpp $(SRC_DIR)/inquire.cpp $(SRC_DIR)/test.cpp \
+SRCS = $(SRC_DIR)/main.cpp $(INCLUDE_DIR)/inquire.cpp $(SRC_DIR)/test.cpp \
        $(UTILS_DIR)/colorful.cpp $(UTILS_DIR)/console.cpp $(UTILS_DIR)/encode.cpp \
        $(UTILS_DIR)/func.cpp
 OBJS = $(BUILD_DIR)/main.o $(BUILD_DIR)/inquire.o \
@@ -37,19 +41,20 @@ $(TARGET): $(OBJS)
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp | $(BUILD_DIR)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
+$(BUILD_DIR)/%.o: $(INCLUDE_DIR)/%.cpp | $(BUILD_DIR)
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
 $(BUILD_DIR)/%.o: $(UTILS_DIR)/%.cpp | $(BUILD_DIR)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-
-
 # Test目标
-test: $(SRC_DIR)/test.cpp $(BUILD_DIR)/inquire.o $(BUILD_DIR)/colorful.o $(BUILD_DIR)/console.o $(BUILD_DIR)/func.o
-	$(CXX) -DTEST -c $(SRC_DIR)/test.cpp -o $(BUILD_DIR)/test.o
-	$(CXX) -DTEST $(BUILD_DIR)/test.o $(BUILD_DIR)/inquire.o $(BUILD_DIR)/colorful.o $(BUILD_DIR)/console.o $(BUILD_DIR)/func.o -o $(TEST_TARGET)
-	@echo -e Build done!
-	@echo Running ./$(TEST_TARGET)......
-	./$(TEST_TARGET)
+test: $(TEST_DIR)/test.cpp $(BUILD_DIR)
+	g++ $(TEST_DIR)/test.cpp -o $(BUILD_DIR)/test
+	$(BUILD_DIR)/test
 
+example: example/example.cpp $(BUILD_DIR)
+	g++ example/example.cpp -o $(BUILD_DIR)/example
+	$(BUILD_DIR)/example
 
 # Clean目标
 clean:

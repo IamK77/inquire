@@ -2,6 +2,8 @@
 #include <string>
 #include "encode.hpp"
 
+
+
 std::string to_string(const std::string &msg) {
     return msg;
 }
@@ -9,6 +11,8 @@ std::string to_string(const std::string &msg) {
 std::string to_string(const char &msg) {
     return std::string(1, msg);
 }
+
+
 
 #ifdef TEST
 

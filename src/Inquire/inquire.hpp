@@ -3,8 +3,12 @@
 #include "utils/func.h"
 #include "utils/console.hpp"
 #include "utils/colorful.hpp"
+#include "utils/encode.hpp"
 #include <vector>
 
+// ToUTF8();
+
+namespace Inquire {
 
 class Select {
     private:
@@ -100,3 +104,5 @@ class MultiSelect {
         void right();
         void left();
 };
+
+}

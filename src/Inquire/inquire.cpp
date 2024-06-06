@@ -3,7 +3,9 @@
 
 /* ---------------------------Select-------------------------------*/
 
-Select::Select(std::string prompt_str, std::vector<std::string> options, int MAX_OPTION_LINE) : prompt_str(prompt_str), options(options), option_size(options.size()), preselected(options.size()) {
+Inquire::Select::Select(std::string prompt_str, std::vector<std::string> options, int MAX_OPTION_LINE) : prompt_str(prompt_str), options(options), option_size(options.size()), preselected(options.size()) {
+
+    ToUTF8();
 
     #ifdef _WIN32
         if (((cursor.now_screen_x_y().second - 1) - cursor.now_cursor_x_y().second) < (options.size() + 1)) {
@@ -26,10 +28,10 @@ Select::Select(std::string prompt_str, std::vector<std::string> options, int MAX
     }
 }
 
-std::string Select::prompt() {
+std::string Inquire::Select::prompt() {
     flush_display();
     while (true) {
-        KeyResult key = key_catch();
+        KeyResult key = Inquire::key_catch();
         if (key.isKey) {
             switch (key.key) {
                 case SPECIAL_KEY::UP:
@@ -74,7 +76,7 @@ std::string Select::prompt() {
     }}
 };
 
-void Select::flush_display(bool is_clear) {
+void Inquire::Select::flush_display(bool is_clear) {
     if (is_clear) {
         #ifdef _WIN32
             cursor.clsline(ori_cursorPos.second + 1, option_size + 1);
@@ -142,7 +144,7 @@ void Select::flush_display(bool is_clear) {
 
 }
 
-void Select::flush_input() {
+void Inquire::Select::flush_input() {
     #ifdef _WIN32
         cursor.clsback(input.size() + 1, ori_cursorPos.first, ori_cursorPos.second);
         cursor.set_cursor_Pos(ori_cursorPos.first, ori_cursorPos.second);
@@ -161,7 +163,7 @@ void Select::flush_input() {
     #endif
 }
 
-void Select::flush_result(std::string result) {
+void Inquire::Select::flush_result(std::string result) {
 
     #ifdef _WIN32
         while (input.size() > 0) {
@@ -193,7 +195,7 @@ void Select::flush_result(std::string result) {
     std::cout << std::endl;
 }
 
-void Select::input_insert(std::string ch) {
+void Inquire::Select::input_insert(std::string ch) {
     input.insert(cursorPos, ch);
     #ifdef __linux__
         temp = cursorPos;
@@ -202,24 +204,24 @@ void Select::input_insert(std::string ch) {
     cursorPos++;
 }
 
-void Select::up() {
+void Inquire::Select::up() {
     selected = (selected - 1 + option_size) % option_size;
     flush_display();
 }
 
-void Select::down() {
+void Inquire::Select::down() {
     selected = (selected + 1) % option_size;
     flush_display();
 }
 
-void Select::right() {
+void Inquire::Select::right() {
     if (cursorPos < input.size()) {
         cursorPos++;
         cursor.cursor_move(1, 0);
     }
 }
 
-void Select::left() {
+void Inquire::Select::left() {
     if (cursorPos > 0) {
         cursorPos--;
         cursor.cursor_move(-1, 0);
@@ -229,11 +231,14 @@ void Select::left() {
 
 /* ---------------------------Text-------------------------------*/
 
-Text::Text(std::string prompt_str) : prompt_str(prompt_str) {
+Inquire::Text::Text(std::string prompt_str) : prompt_str(prompt_str) {
+
+    ToUTF8();
+
     std::cout << green("? ") << prompt_str << " : ";
 }
 
-std::string Text::prompt() {
+std::string Inquire::Text::prompt() {
 
     #ifdef _WIN32
         std::pair<int, int> ori_cursorPos = cursor.now_cursor_x_y();
@@ -259,18 +264,21 @@ std::string Text::prompt() {
 
 /* ---------------------------Password-------------------------------*/
 
-Password::Password(std::string prompt_str) : prompt_str(prompt_str) {
+Inquire::Password::Password(std::string prompt_str) : prompt_str(prompt_str) {
+
+    ToUTF8();
+
     std::cout << green("? ") << prompt_str << " : ";
 }
 
-std::string Password::prompt() {
+std::string Inquire::Password::prompt() {
     std::string input;
 
     #ifdef _WIN32
 
     std::pair<int, int> ori_cursorPos = cursor.now_cursor_x_y();
     while (true) {
-        KeyResult key = key_catch();
+        KeyResult key = Inquire::key_catch();
         if (key.isKey) {
             switch (key.key) {
                 case SPECIAL_KEY::ENTER:
@@ -305,7 +313,7 @@ std::string Password::prompt() {
 
     while (true) {
         std::cout << std::flush;
-        KeyResult key = key_catch();
+        KeyResult key = Inquire::key_catch();
         if (key.isKey) {
             switch (key.key) {
                 case SPECIAL_KEY::ENTER:
@@ -347,18 +355,21 @@ std::string Password::prompt() {
 
 /* ---------------------------Confirm-------------------------------*/
 
-Confirm::Confirm(std::string prompt_str) : prompt_str(prompt_str) {
+Inquire::Confirm::Confirm(std::string prompt_str) : prompt_str(prompt_str) {
+
+    ToUTF8();
+
     std::cout << green("? ") << prompt_str << " [Enter/ESC] ";
 }
 
-bool Confirm::prompt() {
+bool Inquire::Confirm::prompt() {
 
     #ifdef _WIN32
     std::pair<int, int> ori_cursorPos = cursor.now_cursor_x_y();
     std::cout << gray("Enter: Yes, ESC: No");
     cursor.set_cursor_Pos(ori_cursorPos.first, ori_cursorPos.second);
     while (true) {
-        KeyResult key = key_catch();
+        KeyResult key = Inquire::key_catch();
         if (key.isKey) {
             switch (key.key) {
                 case SPECIAL_KEY::ENTER:
@@ -387,7 +398,7 @@ bool Confirm::prompt() {
     cursor.cursor_move(-help.size(), 0);
 
     while (true) {
-        KeyResult key = key_catch();
+        KeyResult key = Inquire::key_catch();
         if (key.isKey) {
             switch (key.key) {
                 case SPECIAL_KEY::ENTER:

@@ -7,6 +7,7 @@
 #include <utility>
 #include <string>   
 
+namespace Inquire {
 
 #ifdef _WIN32
     extern HANDLE hConsole;
@@ -23,8 +24,6 @@ class Cursor {
 
         int cursor_x;
         int cursor_y;
-
-
 
     public:
         void get_screen_x_y();
@@ -54,4 +53,6 @@ class Cursor {
         void debug_in_last_line(std::string msg);
 
 };
+
+}
 
