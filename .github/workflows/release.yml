@@ -1,0 +1,58 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify tag matches version file
+        run: |
+          tag="${GITHUB_REF#refs/tags/v}"
+          file="$(cat version | tr -d '[:space:]')"
+          if [ "$tag" != "$file" ]; then
+            echo "::error::Tag v$tag does not match version file ($file)"
+            exit 1
+          fi
+
+      - name: Verify amalgamation up-to-date
+        run: |
+          bash tools/amalgamate.sh
+          if ! git diff --quiet -- include/inquire.hpp; then
+            echo "::error::include/inquire.hpp is out of sync"
+            exit 1
+          fi
+
+      - name: Extract changelog section
+        id: changelog
+        run: |
+          tag="${GITHUB_REF#refs/tags/v}"
+          awk -v ver="$tag" '
+            BEGIN { found = 0 }
+            /^## / {
+              if (found) exit
+              if ($0 ~ "## "ver"( |$)") { found = 1; next }
+            }
+            found { print }
+          ' CHANGELOG.md > release_notes.md
+          if [ ! -s release_notes.md ]; then
+            echo "Release v$tag" > release_notes.md
+          fi
+          cat release_notes.md
+
+      - name: Create release with single-header asset
+        uses: softprops/action-gh-release@v2
+        with:
+          body_path: release_notes.md
+          files: include/inquire.hpp
+          fail_on_unmatched_files: true
+          draft: false
+          prerelease: ${{ contains(github.ref, '-') }}

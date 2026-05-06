@@ -1,0 +1,145 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+# Cancel in-progress runs for the same ref when a new push lands.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    name: ${{ matrix.os }} · ${{ matrix.compiler }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            compiler: gcc
+            cc: gcc
+            cxx: g++
+          - os: ubuntu-latest
+            compiler: clang
+            cc: clang
+            cxx: clang++
+          - os: macos-latest
+            compiler: clang
+            cc: clang
+            cxx: clang++
+          - os: windows-latest
+            compiler: msvc
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up CMake
+        uses: lukka/get-cmake@latest
+
+      - name: Configure (POSIX)
+        if: runner.os != 'Windows'
+        env:
+          CC:  ${{ matrix.cc }}
+          CXX: ${{ matrix.cxx }}
+        run: |
+          cmake -S . -B build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DINQUIRE_WARNINGS_AS_ERRORS=ON
+
+      - name: Configure (Windows)
+        if: runner.os == 'Windows'
+        run: cmake -S . -B build -DINQUIRE_WARNINGS_AS_ERRORS=ON
+
+      - name: Build
+        run: cmake --build build --config Release -j
+
+      - name: Test
+        run: ctest --test-dir build --output-on-failure --build-config Release
+
+      - name: Install (POSIX)
+        if: runner.os != 'Windows'
+        run: |
+          cmake --install build --prefix "$RUNNER_TEMP/install"
+          test -f "$RUNNER_TEMP/install/include/inquire.hpp"
+          test -f "$RUNNER_TEMP/install/lib/cmake/inquire/inquireConfig.cmake"
+
+      - name: Verify Makefile (POSIX only)
+        if: runner.os != 'Windows'
+        run: |
+          rm -rf build
+          make lib
+          make demo
+          test -x ./build/inquire-demo
+
+  amalgamation-up-to-date:
+    name: amalgamation up-to-date
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Regenerate single-header
+        run: bash tools/amalgamate.sh
+      - name: Diff
+        run: |
+          if ! git diff --quiet -- include/inquire.hpp; then
+            echo "::error::include/inquire.hpp is out of sync with src/. Run tools/amalgamate.sh and commit."
+            git --no-pager diff --stat include/inquire.hpp
+            exit 1
+          fi
+
+  sanitizers:
+    name: sanitizers (asan + ubsan)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: lukka/get-cmake@latest
+      - name: Configure
+        run: |
+          cmake -S . -B build \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DINQUIRE_ENABLE_ASAN=ON \
+            -DINQUIRE_ENABLE_UBSAN=ON
+      - name: Build
+        run: cmake --build build -j
+      - name: Test
+        env:
+          ASAN_OPTIONS: detect_leaks=1:strict_string_checks=1:halt_on_error=1
+          UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
+        run: ctest --test-dir build --output-on-failure
+
+  coverage:
+    name: coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: lukka/get-cmake@latest
+      - name: Install lcov
+        run: sudo apt-get update && sudo apt-get install -y lcov
+      - name: Configure
+        run: |
+          cmake -S . -B build \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DINQUIRE_ENABLE_COVERAGE=ON
+      - name: Build & test
+        run: |
+          cmake --build build -j
+          ctest --test-dir build --output-on-failure
+      - name: Collect coverage
+        run: |
+          lcov --capture --directory build --output-file coverage.info \
+            --rc lcov_branch_coverage=1 --ignore-errors mismatch,gcov,inconsistent
+          lcov --remove coverage.info '/usr/*' '*/tests/*' '*/example/*' \
+            --output-file coverage.info \
+            --ignore-errors unused,mismatch,inconsistent || true
+          lcov --list coverage.info
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coverage-info
+          path: coverage.info
