@@ -2,170 +2,291 @@
 
 [中文](Docs/README.zh.md) | English
 
-Inquire is a simple, interactive command-line library for C++ developers, making it easier to create interactive command-line applications.
-
-## Background
-
-When writing some simple scripts, I wanted to use an interactive command line for convenience. Searching on GitHub, I found Rust has `inquire` and Python has `bullet`, but there wasn't a library in C++ that met my expectations. Hence, this project was born.
-
-This library emulates the effects of [inquire](https://github.com/mikaelmello/inquire).
-
-## Features
-
-- [`Select`](#select) - Choose an option from a list of selections.
-- [`Text`](#text) - Enter text.
-- [`Confirm`](#confirm) - Confirmation prompt.
-- [`Password`](#password) - Enter a password.
-
-## Example Usage
-
-```shell
-make example
-```
-
-## Usage
-
-Place `inquire.hpp` from the `include` directory into your project
-
-Create an `inquire` folder in your directory for third-party libraries, and select the appropriate command to run based on your situation.
-
-```shell
-mkdir inquire
-cd inquire
-```
-
-Download the `inquire.hpp` file using wget:
-
-```shell
-wget -O inquire.hpp https://github.com/IamK77/inquire/releases/download/v0.1.0/inquire.hpp
-```
-
-Alternatively, download the `inquire.hpp` file using curl:
-
-```shell
-curl -L -o inquire.hpp https://github.com/IamK77/inquire/releases/download/v0.1.0/inquire.hpp
-```
-
-To download the `inquire.hpp` file using a proxy with curl, replace `7890` with your proxy port:
-
-```shell
-curl -x 127.0.0.1:7890 -L -o inquire.hpp https://github.com/IamK77/inquire/releases/download/v0.1.0/inquire.hpp
-```
-
-use as follows:
+A small, production-quality, single-header library of interactive command-line
+prompts for C++11. Inspired by Rust's [inquire](https://github.com/mikaelmello/inquire).
 
 ```cpp
+#define INQUIRE_IMPLEMENTATION
 #include "inquire.hpp"
 
 int main() {
-    std::vector<std::string> options = {"Option 1", "Option 2", "Option 3", "Option 4"};
-
-    std::string result = Inquire::Select("Select an option", options).prompt();
-    std::cout << "You selected: " << result << std::endl;
-
-    std::string text = Inquire::Text("Enter some text").prompt();
-    std::cout << "You entered: " << text << std::endl;
-
-    std::string password = Inquire::Password("Enter a password").prompt();
-    std::cout << "You entered: " << password << std::endl;
-
-    bool confirm = Inquire::Confirm("Are you suuuuuure?").prompt();
-    std::cout << "You confirmed: " << confirm << std::endl;
-
-    return 0;
+    auto fruit = Inquire::Select("Pick a fruit", {"apple", "banana", "cherry"})
+        .page_size(5)
+        .prompt();
 }
 ```
 
-Using it is similar to `inquire`.
+![status](https://img.shields.io/badge/c%2B%2B-11-blue) ![license](https://img.shields.io/badge/license-MIT-green)
 
-## Select
+## Features
 
-In `Select`, use arrow keys to choose an option, type to filter, Enter to confirm, and ESC to cancel.
+| Prompt          | Returns                          | Highlights                                         |
+|-----------------|----------------------------------|----------------------------------------------------|
+| `Select`        | `std::string` / `int`            | filter, pagination, default index, custom matcher  |
+| `MultiSelect`   | `std::vector<std::string>` / idx | min/max selected, defaults, pagination             |
+| `Text`          | `std::string`                    | inline cursor edit, default, placeholder, validators |
+| `Password`      | `std::string`                    | masking, optional show-typing, validators          |
+| `Confirm`       | `bool`                           | y/n keys, optional default, Enter shortcut         |
+
+Cross-cutting:
+
+- **Typed errors**: `CancelledError`, `ValidationError`, `EmptyOptionsError`,
+  `InterruptedError`, `IoError`. All derive from `InquireError` and carry an
+  `ErrorCode`.
+- **Non-throwing API**: every prompt also exposes `try_prompt()` that returns
+  a `Result<T>`.
+- **UTF-8 aware**: multi-byte input on Linux & Windows; double-width CJK glyphs
+  in option labels are display-width truncated, not byte-truncated.
+- **Signal-safe terminal**: SIGINT, SIGTERM, and SIGSEGV restore the terminal
+  state before re-raising. No more "garbled shell" after Ctrl+C.
+- **ANSI on every platform**: enables Virtual Terminal mode on Windows 10+ for
+  uniform rendering.
+- **Builder-style configuration**: chainable `prompt.option().option()` calls.
+
+## Install
+
+Drop `include/inquire.hpp` into your project. In **exactly one** translation
+unit, define `INQUIRE_IMPLEMENTATION` before the include:
 
 ```cpp
-std::vector<std::string> options = {"Option 1", "Option 2", "Option 3", "Option 4"};
+#define INQUIRE_IMPLEMENTATION
+#include "inquire.hpp"
+```
 
-std::string result = Inquire::Select("Select an option", options).prompt();
+Other translation units include the header normally.
 
-if (!result.empty()) {
-    switch (result) {
-        case "Option 1":
-            // do something
-            break;
-        case "Option 2":
-            // do something
-            break;
-        case "Option 3":
-            // do something
-            break;
-        case "Option 4":
-            // do something
-            break;
+Or, build from source as a static library:
+
+```shell
+make lib       # produces build/libinquire.a
+make demo      # builds demo binary
+make test      # runs unit tests
+make example   # builds & runs the interactive example
+```
+
+## Quick start
+
+```cpp
+#define INQUIRE_IMPLEMENTATION
+#include "inquire.hpp"
+
+#include <iostream>
+
+int main() {
+    using namespace Inquire;
+    try {
+        std::string fruit = Select("Pick a fruit", {
+                "apple", "banana", "cherry", "durian", "elderberry"
+            })
+            .page_size(3)
+            .default_index(1)
+            .help_message("type to filter, ↑↓ to move, enter to confirm")
+            .prompt();
+
+        std::vector<std::string> picks = MultiSelect("Toppings", {
+                "cheese", "olives", "mushroom", "bacon", "spinach"
+            })
+            .min_selected(1)
+            .max_selected(3)
+            .prompt();
+
+        std::string name = Text("Name?")
+            .default_value("anonymous")
+            .add_validator(validators::min_length(2))
+            .prompt();
+
+        std::string pwd = Password("Set a password")
+            .add_validator(validators::all_of({
+                validators::min_length(8),
+                validators::matches(".*[0-9].*", "must contain a digit")
+            }))
+            .prompt();
+
+        bool ok = Confirm("Looks good?").default_value(true).prompt();
+
+        std::cout << name << " picked " << fruit << "; ok=" << ok << "\n";
+    } catch (const Inquire::CancelledError&) {
+        std::cerr << "cancelled\n";
+        return 1;
+    } catch (const Inquire::InquireError& e) {
+        std::cerr << "error: " << e.what() << "\n";
+        return 2;
     }
 }
 ```
 
-*class Select*
-----------------
-- `Select(param_question, param_options)` Constructor
-    - `param_question` : std::string The question
-    - `param_options` : std::vector\<std::string> List of options
+## Error model
 
-- `prompt()` : std::string Display the question and return the selected option
-    - `return` : std::string The selected option
-
-
-## Text
-
-In `Text`, type text and press Enter to confirm, ESC to cancel.
+All prompts throw on cancellation. The base type is:
 
 ```cpp
-std::string text = Inquire::Text("Enter some text").prompt();
+class InquireError : public std::runtime_error {
+public:
+    ErrorCode code() const noexcept;
+};
 ```
 
-*class Text*
-----------------
-- `Text(param_question)` Constructor
-    - `param_question` : std::string The question
+Specific subclasses, all of which you can catch:
 
-- `prompt()` : std::string Display the question and return the entered text
-    - `return` : std::string The entered text
+| Type                  | When                                              |
+|-----------------------|---------------------------------------------------|
+| `CancelledError`      | user pressed ESC or Ctrl+C                        |
+| `InterruptedError`    | user pressed Ctrl+D                               |
+| `ValidationError`     | a validator rejected the input (re-prompted)      |
+| `EmptyOptionsError`   | `Select`/`MultiSelect` was given an empty vector  |
+| `IoError`             | terminal I/O failure                              |
 
-
-## Confirm
-
-In `Confirm`, press Enter to confirm, ESC to cancel.
+If you prefer not to use exceptions:
 
 ```cpp
-bool confirm = Inquire::Confirm("Are you suuuuuure?").prompt();
+auto r = Inquire::Select("pick", {"a", "b"}).try_prompt();
+if (r.ok()) {
+    std::cout << r.value() << "\n";
+} else if (r.error_code() == Inquire::ErrorCode::Cancelled) {
+    std::cout << "user cancelled\n";
+}
 ```
 
-*class Confirm*
-----------------
-- `Confirm(param_question)` Constructor
-    - `param_question` : std::string The question
+## Validators
 
-- `prompt()` : bool Display the question and return the user's choice
-    - `return` : bool The user's choice
-
-
-## Password
-
-In `Password`, type a password and press Enter to confirm, ESC to cancel.
+Built-in validators in `Inquire::validators`:
 
 ```cpp
-std::string password = Inquire::Password("Enter a password").prompt();
+validators::non_empty()
+validators::min_length(n)
+validators::max_length(n)
+validators::length_between(lo, hi)
+validators::matches("[a-z0-9]+")
+validators::integer()
+validators::all_of({a, b, c})
 ```
 
-*class Password*
-----------------
-- `Password(param_question)` Constructor
-    - `param_question` : std::string The question
+A validator is just `std::function<void(const std::string&)>`; throw
+`ValidationError("...")` from any callable to reject input. Failed validation
+does **not** throw out of `prompt()`; it shows the error and re-prompts.
 
-- `prompt()` : std::string Display the question and return the entered password
-    - `return` : std::string The entered password
+```cpp
+Inquire::Text("port?")
+    .add_validator([](const std::string& s) {
+        if (std::stoi(s) > 65535) throw Inquire::ValidationError("> 65535");
+    })
+    .prompt();
+```
 
+## Reference
 
-## Related Repositories
+### `Select`
 
-- [inquire](https://github.com/mikaelmello/inquire) - Rust
+```cpp
+Select(std::string question, std::vector<std::string> options);
+Select& page_size(int n);
+Select& default_index(int i);
+Select& help_message(std::string m);
+Select& case_sensitive(bool on);
+Select& filter(std::function<bool(const std::string& option,
+                                  const std::string& input)> fn);
+
+std::string             prompt();        // throws CancelledError on cancel
+int                     prompt_index();  // returns index instead of value
+Result<std::string>     try_prompt();    // non-throwing
+```
+
+Keys: `↑/↓` move, `PgUp/PgDn`, `Home/End`, type to filter (case-insensitive
+substring by default), `Enter` confirm, `Esc` or `Ctrl+C` cancel.
+
+### `MultiSelect`
+
+```cpp
+MultiSelect(std::string question, std::vector<std::string> options);
+MultiSelect& page_size(int n);
+MultiSelect& default_indices(std::vector<int> idx);
+MultiSelect& min_selected(int n);
+MultiSelect& max_selected(int n);
+MultiSelect& help_message(std::string m);
+MultiSelect& case_sensitive(bool on);
+
+std::vector<std::string>             prompt();
+std::vector<int>                     prompt_indices();
+Result<std::vector<std::string>>     try_prompt();
+```
+
+Keys: `↑/↓`, `PgUp/PgDn`, `Home/End`, `Space` toggles, `Enter` confirms.
+
+### `Text`
+
+```cpp
+Text(std::string question);
+Text& default_value(std::string v);
+Text& placeholder(std::string p);
+Text& help_message(std::string m);
+Text& add_validator(Validator v);
+
+std::string          prompt();
+Result<std::string>  try_prompt();
+```
+
+Keys: `←/→`, `Home/End` (or `Ctrl+A`/`Ctrl+E`), `Backspace`/`Delete`,
+`Ctrl+U` to clear, `Enter` confirm.
+
+### `Password`
+
+```cpp
+Password(std::string question);
+Password& mask_char(char c);          // default '*'
+Password& show_typing(bool on);
+Password& help_message(std::string m);
+Password& add_validator(Validator v);
+
+std::string          prompt();
+Result<std::string>  try_prompt();
+```
+
+### `Confirm`
+
+```cpp
+Confirm(std::string question);
+Confirm& default_value(bool b);
+Confirm& help_message(std::string m);
+
+bool          prompt();
+Result<bool>  try_prompt();
+```
+
+Keys: `y/Y` → true, `n/N` → false, `Enter` accepts the default if set.
+
+## Repository layout
+
+```
+include/inquire.hpp        amalgamated single header (regenerate via
+                           `make single-header`)
+src/Inquire/
+├── inquire.hpp / .cpp     public API and prompt implementations
+├── error.hpp              error hierarchy + Result<T>
+├── validator.hpp          validators (header-only)
+├── utils/
+│   ├── colorful.hpp/.cpp  ANSI styling
+│   ├── console.hpp/.cpp   Terminal abstraction (size, cursor, ANSI)
+│   ├── encode.hpp/.cpp    UTF-8 console mode toggle
+│   ├── func.h/.cpp        key event capture + UTF-8 helpers
+│   ├── renderer.hpp/.cpp  multi-line stable redraw + width truncation
+│   └── tty_guard.hpp/.cpp Linux RAII raw-mode + signal-safe restore
+example/example.cpp        runs all five prompts
+tests/test.cpp             46 unit tests covering the non-interactive surface
+tools/amalgamate.sh        regenerates include/inquire.hpp from sources
+```
+
+## Platforms
+
+- Linux: any terminal that speaks ANSI.
+- Windows 10+: VT processing is enabled automatically.
+- macOS: untested but should behave like Linux (POSIX termios).
+
+## Versioning
+
+Semantic versioning. The `0.x` line may break compatibility between minor
+releases as the API stabilizes. Single-header users should pin a tagged
+version.
+
+## License
+
+MIT. See `LICENSE`.

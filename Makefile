@@ -1,72 +1,93 @@
-# 编译器和标志
-CXX = g++
-CXXFLAGS = -std=c++11 -I./Inquire/utils  # -Wall -Wextra 
+# Inquire — production C++ interactive CLI library
 
-# 目录
-SRC_DIR = ./src
-UTILS_DIR = ./src/Inquire/utils
-INCLUDE_DIR = ./src/Inquire
-BUILD_DIR = ./build
+CXX      ?= g++
+CXXSTD   ?= -std=c++11
+WARN     ?= -Wall -Wextra -Wpedantic
+OPT      ?= -O2
+CXXFLAGS ?= $(CXXSTD) $(WARN) $(OPT)
+LDFLAGS  ?=
 
-TEST_DIR = ./tests
-SINGLE_INCLUDE_DIR = ./include
+# ---- layout ----
+SRC_DIR        := src
+INQUIRE_DIR    := $(SRC_DIR)/Inquire
+UTILS_DIR      := $(INQUIRE_DIR)/utils
+INCLUDE_DIR    := include
+BUILD_DIR      := build
+EXAMPLE_DIR    := example
+TEST_DIR       := tests
 
-# 源文件
-SRCS = $(SRC_DIR)/main.cpp $(INCLUDE_DIR)/inquire.cpp $(SRC_DIR)/test.cpp \
-       $(UTILS_DIR)/colorful.cpp $(UTILS_DIR)/console.cpp $(UTILS_DIR)/encode.cpp \
-       $(UTILS_DIR)/func.cpp
-OBJS = $(BUILD_DIR)/main.o $(BUILD_DIR)/inquire.o \
-       $(BUILD_DIR)/colorful.o $(BUILD_DIR)/console.o $(BUILD_DIR)/encode.o \
-       $(BUILD_DIR)/func.o
+INCLUDES := -I$(INQUIRE_DIR) -I$(UTILS_DIR)
 
-# 目标可执行文件
-TARGET = main
-TEST_TARGET = test
+# ---- sources ----
+LIB_SRCS := \
+    $(INQUIRE_DIR)/inquire.cpp \
+    $(UTILS_DIR)/colorful.cpp \
+    $(UTILS_DIR)/console.cpp \
+    $(UTILS_DIR)/encode.cpp \
+    $(UTILS_DIR)/func.cpp \
+    $(UTILS_DIR)/renderer.cpp \
+    $(UTILS_DIR)/tty_guard.cpp
 
-# 默认目标
-all: $(BUILD_DIR) $(TARGET)
+LIB_OBJS := $(patsubst %.cpp,$(BUILD_DIR)/%.o,$(LIB_SRCS))
 
-# 创建build文件夹
-$(BUILD_DIR):
-	@mkdir "$(BUILD_DIR)"
+MAIN_SRC := $(SRC_DIR)/main.cpp
+MAIN_OBJ := $(BUILD_DIR)/$(SRC_DIR)/main.o
 
-# 链接
-$(TARGET): $(OBJS)
-	$(CXX) -o $@ $^
-	@echo ************Build done!*************
-	@echo Running ./$(TARGET)......
-	./$(TARGET)
+TEST_SRC := $(TEST_DIR)/test.cpp
+EXAMPLE_SRC := $(EXAMPLE_DIR)/example.cpp
 
-# 对象文件
-$(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp | $(BUILD_DIR)
-	$(CXX) $(CXXFLAGS) -c $< -o $@
+TARGET   := $(BUILD_DIR)/inquire-demo
+TEST_BIN := $(BUILD_DIR)/inquire-test
+EX_BIN   := $(BUILD_DIR)/inquire-example
+LIB_AR   := $(BUILD_DIR)/libinquire.a
 
-$(BUILD_DIR)/%.o: $(INCLUDE_DIR)/%.cpp | $(BUILD_DIR)
-	$(CXX) $(CXXFLAGS) -c $< -o $@
+.PHONY: all lib demo test example clean run help single-header
 
-$(BUILD_DIR)/%.o: $(UTILS_DIR)/%.cpp | $(BUILD_DIR)
-	$(CXX) $(CXXFLAGS) -c $< -o $@
+all: lib demo
 
-# Test目标
-test: $(TEST_DIR)/test.cpp $(BUILD_DIR)
-	g++ $(TEST_DIR)/test.cpp -o $(BUILD_DIR)/test
-	$(BUILD_DIR)/test
+help:
+	@echo "Targets: lib | demo | test | example | single-header | clean | run"
 
-example: example/example.cpp $(BUILD_DIR)
-	g++ example/example.cpp -o $(BUILD_DIR)/example
-	$(BUILD_DIR)/example
+single-header:
+	bash tools/amalgamate.sh
 
-# Clean目标
+# Static library
+lib: $(LIB_AR)
+
+$(LIB_AR): $(LIB_OBJS)
+	@mkdir -p $(@D)
+	ar rcs $@ $^
+
+# Demo executable from src/main.cpp using sources directly
+demo: $(TARGET)
+
+$(TARGET): $(MAIN_OBJ) $(LIB_OBJS)
+	@mkdir -p $(@D)
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
+
+run: demo
+	$(TARGET)
+
+# Compile object files
+$(BUILD_DIR)/%.o: %.cpp
+	@mkdir -p $(@D)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
+
+# Single-header example/test compile against include/inquire.hpp
+example: $(EX_BIN)
+	$(EX_BIN)
+
+$(EX_BIN): $(EXAMPLE_SRC) $(INCLUDE_DIR)/inquire.hpp
+	@mkdir -p $(@D)
+	$(CXX) $(CXXFLAGS) -I$(INCLUDE_DIR) -o $@ $(EXAMPLE_SRC) $(LDFLAGS)
+
+test: $(TEST_BIN)
+	$(TEST_BIN)
+
+$(TEST_BIN): $(TEST_SRC) $(INCLUDE_DIR)/inquire.hpp
+	@mkdir -p $(@D)
+	$(CXX) $(CXXFLAGS) -I$(INCLUDE_DIR) -o $@ $(TEST_SRC) $(LDFLAGS)
+
 clean:
-ifeq ($(OS),Windows_NT)
-	-@if exist "$(BUILD_DIR)" rmdir /S /Q "$(BUILD_DIR)"
-	-@if exist "$(TARGET).exe" del /F /Q "$(TARGET).exe"
-	-@if exist "$(TEST_TARGET).exe" del /F /Q "$(TEST_TARGET).exe"
-else
-	@if [ -d "$(BUILD_DIR)" ]; then rm -rf $(BUILD_DIR); fi
-	@if [ -f "$(TARGET)" ]; then rm -f $(TARGET); fi
-	@if [ -f "$(TEST_TARGET)" ]; then rm -f $(TEST_TARGET); fi
-endif
-
-# 伪目标
-.PHONY: all clean test
+	@rm -rf $(BUILD_DIR)
+	@echo cleaned

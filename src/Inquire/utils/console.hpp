@@ -1,58 +1,42 @@
 #pragma once
 
-#ifdef _WIN32
-
-#include <windows.h>
-#endif
+#include <iosfwd>
+#include <string>
 #include <utility>
-#include <string>   
 
 namespace Inquire {
 
-#ifdef _WIN32
-    extern HANDLE hConsole;
-    extern CONSOLE_SCREEN_BUFFER_INFO csbi;
-#endif
+class Terminal {
+public:
+    static void init();
+    static std::pair<int, int> size();
+    static bool is_tty();
 
-class Cursor {
-    public:
-        Cursor();
+    static std::ostream& out();
 
-    private:
-        int screen_x;
-        int screen_y;
+    static void hide_cursor();
+    static void show_cursor();
 
-        int cursor_x;
-        int cursor_y;
+    static void cursor_up(int n = 1);
+    static void cursor_down(int n = 1);
+    static void cursor_left(int n = 1);
+    static void cursor_right(int n = 1);
+    static void cursor_to_column(int col);
 
-    public:
-        void get_screen_x_y();
-        void get_cursor_x_y();
+    static void clear_line();
+    static void clear_to_eol();
+    static void clear_below();
 
-        std::pair<int, int> now_screen_x_y();
-        std::pair<int, int> now_cursor_x_y();
+    static void newline();
+    static void flush();
+};
 
-        void set_cursor_Pos(int x, int y);
-
-        void clsline(int line, int count = 1);
-
-        void clsfront(int front, int PosX, int PosY);
-
-        void clsback(int back, int PosX, int PosY);
-
-        void fill(int x, int y, int width, int height, char ch);
-
-        void cursor_move(const int &x, const int &y);
-
-        void printcursorPos();
-
-        void printscreensize();
-
-        void coutxy(int x, int y, std::string msg);
-
-        void debug_in_last_line(std::string msg);
-
+class CursorHider {
+public:
+    CursorHider();
+    ~CursorHider();
+    CursorHider(const CursorHider&) = delete;
+    CursorHider& operator=(const CursorHider&) = delete;
 };
 
 }
-

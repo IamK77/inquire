@@ -1,64 +1,41 @@
 #pragma once
 
-#include <iostream>
 #include <string>
 
+namespace Inquire {
 
-std::string to_string(const std::string &msg);
+namespace style {
 
-std::string to_string(const char &msg);
+std::string red(const std::string& s);
+std::string green(const std::string& s);
+std::string yellow(const std::string& s);
+std::string blue(const std::string& s);
+std::string magenta(const std::string& s);
+std::string cyan(const std::string& s);
+std::string white(const std::string& s);
+std::string black(const std::string& s);
+std::string gray(const std::string& s);
+std::string bold(const std::string& s);
+std::string dim(const std::string& s);
+std::string italic(const std::string& s);
+std::string underline(const std::string& s);
+std::string reverse(const std::string& s);
 
-template <typename T>
-std::string red(const T &msg) {
-    return "\033[31m" + to_string(msg) + "\033[0m";
+void set_enabled(bool on);
+bool enabled();
+
 }
 
-template <typename T>
-std::string green(const T &msg) {
-    return "\033[32m" + to_string(msg) + "\033[0m";
-}
+inline std::string red(const std::string& s)       { return style::red(s); }
+inline std::string green(const std::string& s)     { return style::green(s); }
+inline std::string yellow(const std::string& s)    { return style::yellow(s); }
+inline std::string blue(const std::string& s)      { return style::blue(s); }
+inline std::string magenta(const std::string& s)   { return style::magenta(s); }
+inline std::string cyan(const std::string& s)      { return style::cyan(s); }
+inline std::string white(const std::string& s)     { return style::white(s); }
+inline std::string black(const std::string& s)     { return style::black(s); }
+inline std::string gray(const std::string& s)      { return style::gray(s); }
+inline std::string bold(const std::string& s)      { return style::bold(s); }
+inline std::string underline(const std::string& s) { return style::underline(s); }
 
-template <typename T>
-std::string yellow(const T &msg) {
-    return "\033[33m" + to_string(msg) + "\033[0m";
-}
-
-template <typename T>
-std::string blue(const T &msg) {
-    return "\033[34m" + to_string(msg) + "\033[0m";
-}
-
-template <typename T>
-std::string magenta(const T &msg) {
-    return "\033[35m" + to_string(msg) + "\033[0m";
-}
-
-template <typename T>
-std::string cyan(const T &msg) {
-    return "\033[36m" + to_string(msg) + "\033[0m";
-}
-
-template <typename T>
-std::string white(const T &msg) {
-    return "\033[37m" + to_string(msg) + "\033[0m";
-}
-
-template <typename T>
-std::string black(const T &msg) {
-    return "\033[30m" + to_string(msg) + "\033[0m";
-}
-
-template <typename T>
-std::string bold(const T &msg) {
-    return "\033[1m" + to_string(msg) + "\033[0m";
-}
-
-template <typename T>
-std::string underline(const T &msg) {
-    return "\033[4m" + to_string(msg) + "\033[0m";
-}
-
-template <typename T>
-std::string gray(const T &msg) {
-    return "\033[90m" + to_string(msg) + "\033[0m";
 }

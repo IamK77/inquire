@@ -1,45 +1,39 @@
 #include "colorful.hpp"
-#include <string>
-#include "encode.hpp"
 
+#include <atomic>
 
+namespace Inquire {
+namespace style {
 
-std::string to_string(const std::string &msg) {
-    return msg;
+namespace {
+    std::atomic<bool> g_enabled{true};
+
+    std::string wrap(const char* code, const std::string& s) {
+        if (!g_enabled.load()) return s;
+        std::string out;
+        out.reserve(s.size() + 9);
+        out.append("\033[").append(code).append("m").append(s).append("\033[0m");
+        return out;
+    }
 }
 
-std::string to_string(const char &msg) {
-    return std::string(1, msg);
+void set_enabled(bool on) { g_enabled.store(on); }
+bool enabled()            { return g_enabled.load(); }
+
+std::string red(const std::string& s)       { return wrap("31", s); }
+std::string green(const std::string& s)     { return wrap("32", s); }
+std::string yellow(const std::string& s)    { return wrap("33", s); }
+std::string blue(const std::string& s)      { return wrap("34", s); }
+std::string magenta(const std::string& s)   { return wrap("35", s); }
+std::string cyan(const std::string& s)      { return wrap("36", s); }
+std::string white(const std::string& s)     { return wrap("37", s); }
+std::string black(const std::string& s)     { return wrap("30", s); }
+std::string gray(const std::string& s)      { return wrap("90", s); }
+std::string bold(const std::string& s)      { return wrap("1",  s); }
+std::string dim(const std::string& s)       { return wrap("2",  s); }
+std::string italic(const std::string& s)    { return wrap("3",  s); }
+std::string underline(const std::string& s) { return wrap("4",  s); }
+std::string reverse(const std::string& s)   { return wrap("7",  s); }
+
 }
-
-
-
-#ifdef TEST
-
-int main() {
-    ToUTF8();
-
-    std::string msg = "Hello, World!";
-    
-    std::cout << "Red: " << red(msg) << std::endl;
-    std::cout << "Green: " << green(msg) << std::endl;
-    std::cout << "Yellow: " << yellow(msg) << std::endl;
-    std::cout << "Blue: " << blue(msg) << std::endl;
-    std::cout << "Magenta: " << magenta(msg) << std::endl;
-    std::cout << "Cyan: " << cyan(msg) << std::endl;
-    std::cout << "White: " << white(msg) << std::endl;
-    std::cout << "Black: " << black(msg) << std::endl;
-    std::cout << "Bold: " << bold(msg) << std::endl;
-    std::cout << "Underline: " << underline(msg) << std::endl;
-    std::cout << "Gray: " << gray(msg) << std::endl;
-
-    std::cout << "🍖" << std::endl;
-    std::cout << "中文测试" << std::endl;
-    
-    return 0;
 }
-
-#endif
-
-
-

@@ -1,26 +1,28 @@
 #pragma once
 
 #include <string>
-#include <functional>
 
+namespace Inquire {
 
-enum SPECIAL_KEY{
-    UP,
-    DOWN,
-    RIGHT,
-    LEFT,
-    ENTER,
-    ESC,
-    SPACE,
-    BACKSPACE,
-    UNKNOWN
+enum class Key {
+    None,
+    Char,
+    Up, Down, Left, Right,
+    Enter, Escape, Space, Backspace, Delete, Tab,
+    Home, End, PageUp, PageDown,
+    CtrlC, CtrlD, CtrlA, CtrlE, CtrlU, CtrlW,
+    Unknown
 };
 
-struct KeyResult {
-    SPECIAL_KEY key;
-    std::string str;
-    bool isKey;
+struct KeyEvent {
+    Key key = Key::None;
+    std::string text;
 
-    KeyResult(SPECIAL_KEY key) : key(key), isKey(true) {}
-    KeyResult(std::string str) : str(str), isKey(false) {}
+    KeyEvent() = default;
+    explicit KeyEvent(Key k) : key(k) {}
+    explicit KeyEvent(std::string t) : key(Key::Char), text(std::move(t)) {}
+
+    bool is_char() const noexcept { return key == Key::Char; }
 };
+
+}

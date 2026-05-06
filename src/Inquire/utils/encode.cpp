@@ -1,26 +1,25 @@
 #include "encode.hpp"
+#include "console.hpp"
 
 #ifdef _WIN32
+    #include <windows.h>
+#endif
+
+namespace Inquire {
 
 void ToUTF8() {
-    SetConsoleOutputCP(65001);
+    Terminal::init();
+#ifdef _WIN32
+    SetConsoleOutputCP(CP_UTF8);
+    SetConsoleCP(CP_UTF8);
+#endif
 }
 
 void ToGBK() {
+#ifdef _WIN32
     SetConsoleOutputCP(936);
-}
-
+    SetConsoleCP(936);
 #endif
-
-
-#ifdef __linux__
-
-void ToUTF8() {
-    // do nothing
 }
 
-void ToGBK() {
-    // do nothing
 }
-
-#endif

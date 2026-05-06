@@ -1,23 +1,17 @@
+#pragma once
+
 #include "types.h"
-#include <iostream>
-#include <vector>
 #include <string>
 
 namespace Inquire {
 
-#ifdef _WIN32
+KeyEvent key_catch();
 
-#include <windows.h>
+std::size_t utf8_display_width(const std::string& s) noexcept;
+std::size_t utf8_char_count(const std::string& s) noexcept;
+std::size_t utf8_char_size(const std::string& s, std::size_t byte_pos) noexcept;
+std::size_t utf8_prev_char_start(const std::string& s, std::size_t byte_pos) noexcept;
 
-// extern HANDLE hConsole;
-extern HANDLE hStdin;
-extern INPUT_RECORD irInputRecord;
-extern DWORD dwEventsRead;
-extern KEY_EVENT_RECORD key;
-
-#endif
-
-
-KeyResult key_catch();
+bool icontains(const std::string& haystack, const std::string& needle) noexcept;
 
 }
