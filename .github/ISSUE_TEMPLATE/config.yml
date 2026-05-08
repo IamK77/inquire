@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security disclosure
+    url: https://github.com/IamK77/inquire/security/advisories/new
+    about: Privately report a vulnerability — do not open a public issue.
+  - name: Question or discussion
+    url: https://github.com/IamK77/inquire/discussions
+    about: Ask a question or share an idea before filing an issue.
