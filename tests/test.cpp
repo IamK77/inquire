@@ -162,6 +162,134 @@ static void test_builder_chain() {
     CHECK(true);
 }
 
+static void test_utf8_edge_cases() {
+    CHECK(utf8_char_count("") == 0);
+    CHECK(utf8_display_width("") == 0);
+    CHECK(utf8_char_size("", 0) == 0);
+    CHECK(utf8_char_size("abc", 5) == 0);
+    CHECK(utf8_prev_char_start("", 0) == 0);
+    CHECK(utf8_prev_char_start("abc", 0) == 0);
+
+    // 4-byte emoji (musical note U+1D11E and rocket U+1F680).
+    std::string emoji = "\xF0\x9D\x84\x9E";
+    CHECK(utf8_char_count(emoji) == 1);
+    CHECK(utf8_char_size(emoji, 0) == 4);
+
+    std::string rocket = "\xF0\x9F\x9A\x80";
+    CHECK(utf8_char_count(rocket) == 1);
+    CHECK(utf8_display_width(rocket) == 2);
+
+    // Mixed: ascii + 2-byte + 3-byte + 4-byte
+    std::string mixed = std::string("a") + "\xC3\xA9" + "中" + rocket;
+    CHECK(utf8_char_count(mixed) == 4);
+    CHECK(utf8_display_width(mixed) == 1 + 1 + 2 + 2);
+}
+
+static void test_validators_edge_cases() {
+    bool threw = false;
+    try { validators::integer()(""); }
+    catch (const ValidationError&) { threw = true; }
+    CHECK(threw);
+
+    threw = false;
+    try { validators::integer()("+"); }
+    catch (const ValidationError&) { threw = true; }
+    CHECK(threw);
+
+    threw = false;
+    try { validators::integer()("+0"); }
+    catch (const ValidationError&) { threw = true; }
+    CHECK(!threw);
+
+    threw = false;
+    try { validators::length_between(2, 4)("a"); }
+    catch (const ValidationError&) { threw = true; }
+    CHECK(threw);
+
+    threw = false;
+    try { validators::length_between(2, 4)("abcde"); }
+    catch (const ValidationError&) { threw = true; }
+    CHECK(threw);
+
+    threw = false;
+    try { validators::length_between(2, 4)("abc"); }
+    catch (const ValidationError&) { threw = true; }
+    CHECK(!threw);
+
+    // Custom validator via lambda
+    Validator forbid_x = [](const std::string& s) {
+        if (s.find('x') != std::string::npos) throw ValidationError("no x allowed");
+    };
+    threw = false;
+    try { forbid_x("axe"); }
+    catch (const ValidationError& e) {
+        threw = true;
+        CHECK(std::string(e.what()) == "no x allowed");
+    }
+    CHECK(threw);
+}
+
+static void test_result_throws_on_value() {
+    auto err = Result<std::string>::err(ErrorCode::Cancelled, "cancelled");
+    bool threw = false;
+    try { (void)err.value(); }
+    catch (const InquireError& e) {
+        threw = true;
+        CHECK(e.code() == ErrorCode::Cancelled);
+    }
+    CHECK(threw);
+
+    auto ok = Result<std::string>::ok("hi");
+    CHECK(ok.value() == "hi");
+    CHECK(static_cast<bool>(ok));
+    CHECK(!static_cast<bool>(err));
+}
+
+static void test_truncate_edge_cases() {
+    CHECK(truncate_display("", 5) == "");
+    CHECK(truncate_display("hello", 0) == "");
+    CHECK(truncate_display("a", 1) == "a");
+    // Width-aware truncation never produces output wider than max_width.
+    std::string out = truncate_display("中文测试", 3);
+    CHECK(utf8_display_width(out) <= 3);
+    out = truncate_display("hello world!!!!!", 7);
+    CHECK(utf8_display_width(out) <= 7);
+}
+
+static void test_icontains_edge_cases() {
+    CHECK(icontains("", ""));
+    CHECK(!icontains("", "a"));
+    CHECK(icontains("aaa", "a"));
+    CHECK(icontains("AbCdEf", "cde"));
+    CHECK(!icontains("Foo Bar", "ofb"));
+    // Non-ASCII bytes pass through verbatim (no Unicode case folding,
+    // by design — stays predictable across locales).
+    CHECK(icontains("中文测试", "文测"));
+}
+
+static void test_color_toggle() {
+    style::set_enabled(false);
+    std::string plain = style::red("hello");
+    CHECK(plain == "hello");
+    style::set_enabled(true);
+    std::string colored = style::red("hello");
+    CHECK(colored != "hello");
+    CHECK(colored.find("hello") != std::string::npos);
+}
+
+static void test_error_codes_distinct() {
+    CHECK(static_cast<int>(ErrorCode::Cancelled)   != static_cast<int>(ErrorCode::Interrupted));
+    CHECK(static_cast<int>(ErrorCode::InvalidInput) != static_cast<int>(ErrorCode::EmptyOptions));
+    CHECK(static_cast<int>(ErrorCode::Io)           != static_cast<int>(ErrorCode::UnsupportedTerminal));
+
+    // Each typed error reports the matching code.
+    CancelledError c;          CHECK(c.code() == ErrorCode::Cancelled);
+    InterruptedError i;        CHECK(i.code() == ErrorCode::Interrupted);
+    ValidationError v("x");    CHECK(v.code() == ErrorCode::InvalidInput);
+    EmptyOptionsError e;       CHECK(e.code() == ErrorCode::EmptyOptions);
+    IoError io("io");          CHECK(io.code() == ErrorCode::Io);
+}
+
 int main() {
     test_utf8();
     test_icontains();
@@ -172,6 +300,13 @@ int main() {
     test_select_empty_throws();
     test_multiselect_empty_throws();
     test_builder_chain();
+    test_utf8_edge_cases();
+    test_validators_edge_cases();
+    test_result_throws_on_value();
+    test_truncate_edge_cases();
+    test_icontains_edge_cases();
+    test_color_toggle();
+    test_error_codes_distinct();
 
     std::cout << passed << " passed, " << failed << " failed\n";
     return failed == 0 ? 0 : 1;

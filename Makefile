@@ -1,4 +1,17 @@
 # Inquire — production C++ interactive CLI library
+#
+# Common targets:
+#   make           # lib + demo
+#   make test      # build + run unit tests against the single header
+#   make example   # build + run interactive example
+#   make asan      # rebuild + test with AddressSanitizer
+#   make ubsan     # rebuild + test with UndefinedBehaviorSanitizer
+#   make tsan      # rebuild + test with ThreadSanitizer
+#   make coverage  # build with --coverage, run tests, summarize gcov
+#   make tidy      # run clang-tidy against the modular sources
+#   make format    # run clang-format -i across src/ tests/ example/
+#   make single-header
+#   make clean
 
 CXX      ?= g++
 CXXSTD   ?= -std=c++11
@@ -41,12 +54,30 @@ TEST_BIN := $(BUILD_DIR)/inquire-test
 EX_BIN   := $(BUILD_DIR)/inquire-example
 LIB_AR   := $(BUILD_DIR)/libinquire.a
 
-.PHONY: all lib demo test example clean run help single-header
+ALL_FORMATTABLE := $(shell find $(SRC_DIR) $(TEST_DIR) $(EXAMPLE_DIR) \
+    -type f \( -name '*.cpp' -o -name '*.hpp' -o -name '*.h' \) 2>/dev/null)
+
+.PHONY: all lib demo test example clean run help single-header \
+        asan ubsan tsan coverage tidy format
 
 all: lib demo
 
 help:
-	@echo "Targets: lib | demo | test | example | single-header | clean | run"
+	@echo "Build targets:"
+	@echo "  make all        - build static lib + demo (default)"
+	@echo "  make lib        - build $(LIB_AR)"
+	@echo "  make demo       - build & link demo binary"
+	@echo "  make test       - build & run unit tests (single header)"
+	@echo "  make example    - build & run interactive example"
+	@echo "  make single-header"
+	@echo "Quality targets:"
+	@echo "  make asan       - tests under AddressSanitizer"
+	@echo "  make ubsan      - tests under UndefinedBehaviorSanitizer"
+	@echo "  make tsan       - tests under ThreadSanitizer"
+	@echo "  make coverage   - tests with gcov instrumentation"
+	@echo "  make tidy       - run clang-tidy"
+	@echo "  make format     - run clang-format -i"
+	@echo "  make clean"
 
 single-header:
 	bash tools/amalgamate.sh
@@ -87,6 +118,52 @@ test: $(TEST_BIN)
 $(TEST_BIN): $(TEST_SRC) $(INCLUDE_DIR)/inquire.hpp
 	@mkdir -p $(@D)
 	$(CXX) $(CXXFLAGS) -I$(INCLUDE_DIR) -o $@ $(TEST_SRC) $(LDFLAGS)
+
+# ---- sanitizer / coverage shortcuts ----
+# Each runs in an isolated build directory so they don't poison the
+# default `make` artefacts.
+SAN_DIR := $(BUILD_DIR)/san
+
+asan:
+	@mkdir -p $(SAN_DIR)
+	$(CXX) $(CXXSTD) $(WARN) -O1 -g -fsanitize=address -fno-omit-frame-pointer \
+	    -I$(INCLUDE_DIR) -o $(SAN_DIR)/test-asan $(TEST_SRC) -fsanitize=address
+	ASAN_OPTIONS=detect_leaks=1:halt_on_error=1 $(SAN_DIR)/test-asan
+
+ubsan:
+	@mkdir -p $(SAN_DIR)
+	$(CXX) $(CXXSTD) $(WARN) -O1 -g -fsanitize=undefined -fno-omit-frame-pointer \
+	    -I$(INCLUDE_DIR) -o $(SAN_DIR)/test-ubsan $(TEST_SRC) -fsanitize=undefined
+	UBSAN_OPTIONS=print_stacktrace=1:halt_on_error=1 $(SAN_DIR)/test-ubsan
+
+tsan:
+	@mkdir -p $(SAN_DIR)
+	$(CXX) $(CXXSTD) $(WARN) -O1 -g -fsanitize=thread -fno-omit-frame-pointer \
+	    -I$(INCLUDE_DIR) -o $(SAN_DIR)/test-tsan $(TEST_SRC) -fsanitize=thread
+	$(SAN_DIR)/test-tsan
+
+COV_DIR := $(BUILD_DIR)/cov
+coverage:
+	@mkdir -p $(COV_DIR)
+	$(CXX) $(CXXSTD) $(WARN) -O0 -g --coverage \
+	    -I$(INCLUDE_DIR) -o $(COV_DIR)/test-cov $(TEST_SRC) --coverage
+	$(COV_DIR)/test-cov
+	@if command -v gcov >/dev/null; then \
+	    cd $(COV_DIR) && gcov -r test-cov-*.gcno | tail -20 ; \
+	else \
+	    echo "gcov not found; raw .gcda files in $(COV_DIR)" ; \
+	fi
+
+# ---- static analysis & formatting ----
+tidy:
+	@command -v clang-tidy >/dev/null || { echo "clang-tidy not installed"; exit 1; }
+	@command -v cmake >/dev/null || { echo "cmake required for compile_commands.json"; exit 1; }
+	cmake -S . -B $(BUILD_DIR)/tidy -DCMAKE_EXPORT_COMPILE_COMMANDS=ON >/dev/null
+	clang-tidy -p $(BUILD_DIR)/tidy $(LIB_SRCS)
+
+format:
+	@command -v clang-format >/dev/null || { echo "clang-format not installed"; exit 1; }
+	clang-format -i $(ALL_FORMATTABLE)
 
 clean:
 	@rm -rf $(BUILD_DIR)
