@@ -58,7 +58,7 @@ ALL_FORMATTABLE := $(shell find $(SRC_DIR) $(TEST_DIR) $(EXAMPLE_DIR) \
     -type f \( -name '*.cpp' -o -name '*.hpp' -o -name '*.h' \) 2>/dev/null)
 
 .PHONY: all lib demo test example clean run help single-header \
-        asan ubsan tsan coverage tidy format
+        asan ubsan tsan coverage tidy format docs
 
 all: lib demo
 
@@ -164,6 +164,11 @@ tidy:
 format:
 	@command -v clang-format >/dev/null || { echo "clang-format not installed"; exit 1; }
 	clang-format -i $(ALL_FORMATTABLE)
+
+docs:
+	@command -v doxygen >/dev/null || { echo "doxygen not installed"; exit 1; }
+	doxygen Doxyfile
+	@echo "Generated docs at build/doxygen/html/index.html"
 
 clean:
 	@rm -rf $(BUILD_DIR)

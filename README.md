@@ -16,7 +16,17 @@ int main() {
 }
 ```
 
-![status](https://img.shields.io/badge/c%2B%2B-11-blue) ![license](https://img.shields.io/badge/license-MIT-green)
+[![CI](https://github.com/IamK77/inquire/actions/workflows/ci.yml/badge.svg)](https://github.com/IamK77/inquire/actions/workflows/ci.yml)
+![C++](https://img.shields.io/badge/c%2B%2B-11-blue)
+![Header-only or static](https://img.shields.io/badge/single--header-yes-blueviolet)
+![Platforms](https://img.shields.io/badge/platforms-linux%20%7C%20macOS%20%7C%20windows-lightgrey)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+![Tests](https://img.shields.io/badge/tests-93%20passing-success)
+
+> **Status**: 0.2.x is the first production-grade line. APIs may still
+> evolve before 1.0; pin to a tag for stability. CI runs on Linux
+> (gcc + clang), macOS (clang), and Windows (MSVC) with
+> `-Werror`/`/WX`, plus ASan, UBSan, and coverage jobs.
 
 ## Features
 
